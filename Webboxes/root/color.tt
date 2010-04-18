@@ -1,0 +1,11 @@
+<html>
+<head><title>Colors</title></head>
+<body>
+<h1>Colors</h1>
+<ul>
+[% FOREACH color = colors %]
+<li>[% color | html %]</li>
+[% END %]
+</ul>
+</body>
+</html>

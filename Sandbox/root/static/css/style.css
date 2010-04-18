@@ -1,0 +1,99 @@
+html, body {
+    background-color: #FFF;
+    padding: 0;
+    margin: 16px auto;
+    font-family: sans-serif;
+    color: #222;
+    font-size: 12pt;
+    min-height: 500px;
+}
+
+#main {
+    width: 1024px;
+    margin: 0 auto;
+    padding: 0 8px;
+    background-color: #FFF;
+}
+.headercontainer {
+    
+}
+
+div#main .header {
+    margin: 0 16px;
+    background-color: #FFF;
+    color: #333;
+    text-align: left;
+    height: 100px;
+}
+
+
+div.container {
+    margin: 0 8px;
+}
+
+div#main .left {
+    width: 20%;
+    float: left;
+    margin-right: -1px;
+    margin-top: 64px;
+    text-align: right;
+}
+
+div#main .right {
+    width: 80%;
+    float: left;
+    border-left: #000 1px solid;
+    min-height: 500px;
+}
+
+div.container ul.nav {
+    list-style-type: none;
+    text-align: right;
+}
+
+div.right .container  {
+    padding-left: 8px;
+}
+div.left .container  {
+    padding-right: 8px;
+}
+
+div.posts {
+    background-color: #FFF;
+}
+
+div.post {
+    padding: 0px 8px;
+    margin-bottom: 32px;
+    background-color: #FAFAFA;
+    border: #F0F0F0 1px solid;;
+}
+
+div.post .title {
+    font-weight: normal;
+    color: #555;
+}
+
+div.post .below-title {
+    font-size: 10pt;
+}
+
+div.post .content {
+}
+
+a {
+    color: #000;
+}
+
+form.create_post textarea.content {
+    width: 600px;
+    height: 400px;
+}
+
+form.create_post input.title {
+    width: 500px;
+}
+
+form.create_post div.controls {
+    padding-bottom: 8px;
+}

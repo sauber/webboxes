@@ -1,0 +1,13 @@
+Short Catalyst Ajax Example:
+http://sedition.com/a/2670
+
+Making your own Catalyst model:
+http://www.packtpub.com/article/catalyst-web-framework-building-your-own-model
+
+A blog using catalyst and mongodb:
+http://github.com/orlandov/blogjob
+
+YIU Ajax Example:
+http://developer.yahoo.com/yui/3/examples/io/io-get.html
+
+

@@ -1,0 +1,45 @@
+A portal instance has:
+  * Name
+  * List of apps
+  * Style
+  * Default layout
+
+An app has:
+ * Name
+ * List of views
+ * Structured data
+
+A view definition has:
+ * Name
+ * A box type
+ * Caching / autorefresh
+
+Data elements definition:
+ * Name
+ * Type ( text, select, cycle, log ...)
+ * CRUD ( Create, Read, Update, Delete )
+
+Box definition:
+ * Title
+ * Content
+ * Navbar (expand, minimize, move, close ... )
+
+Portal package has:
+ * Box frame
+ * List of box content views
+ * List of data elements
+ * Access control
+ * App chooser
+ * Database
+
+-- Hello World Example --
+
+Data Type: Text
+CRUD: Only Read
+View Type: Text
+Box Frame
+Box Navigation
+App Store
+App Name: Hello World
+portalstyle.css
+
