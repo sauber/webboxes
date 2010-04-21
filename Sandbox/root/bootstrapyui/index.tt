@@ -1,0 +1,19 @@
+[%~
+  #page.layout = '2columns';  # use a 2 column layout (default is 'default')
+  #page.header = 'my_custom'; # will load root/site/header/my_custom.tt
+  #page.footer = 'none';      # don’t display a footer
+
+  # adds these <link rel="stylsheet"...> tags to the <head>
+  page.head.stylesheets.push('foo.css','bar.css');
+
+  # adds these <script> tags to the <head>
+  page.head.scripts.push('foo.js','bar.js');
+  # adds these <script> tags to the bottom of the <body> ‐‐ usually preferable
+  page.body.scripts.push('baz.js','poop.js');
+
+  # adds these classes to the <body> tag
+  page.body.classes.push('foo','bar');
+~%]
+<p>...your content here...</p>
+
+<p>Based upon <a href="http://search.cpan.org/perldoc/Catalyst::Helper::View::TT::Bootstrap::YUI">Catalyst::Helper::View::TT::Bootstrap::YUI</a></p>

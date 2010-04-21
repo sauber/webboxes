@@ -5,10 +5,10 @@
 <p>Menu</p>
 <ul>
 <li><a href="ajax">The shortest Ajax+Catalyst tutorial in the world</a></li>
-<li><a href="mongo">MongoDB</a> - TODO</li>
+<li><a href="mongo">MongoDB</a></li>
+<li><a href="bootstrapyui">Bootstrap YUI</a> - TODO</li>
 <li><a href="yuiioget">IO: GET Transaction</a> - TODO</li>
-<li><a href="yuiloader">YIU Loader</a> - TODO</li>
-<li><a href="yuiportal">YIU Portal</a> - TODO</li>
+<li><a href="yuiportal">YUI Portal</a> - TODO</li>
 </ul>
 </body>
 </html>
