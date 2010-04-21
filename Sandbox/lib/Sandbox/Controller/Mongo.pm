@@ -22,9 +22,10 @@ Catalyst Controller.
 =cut
 
 sub index :Path :Args(0) {
-    my ( $self, $c ) = @_;
+  my ( $self, $c ) = @_;
 
-    $c->response->body('Matched Sandbox::Controller::Mongo in Mongo.');
+  $c->stash->{colors} = [$c->model('Color')->colors()];
+  $c->detach( $c->view("TT") );
 }
 
 

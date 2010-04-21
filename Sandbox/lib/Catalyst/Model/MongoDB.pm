@@ -1,4 +1,5 @@
 package Catalyst::Model::MongoDB;
+use MongoDB;
 use Moose;
 
 BEGIN { extends 'Catalyst::Model' }
