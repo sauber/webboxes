@@ -1,4 +1,4 @@
-package Sandbox::Controller::YUIIOGet;
+package Sandbox::Controller::YuiIoGet;
 use Moose;
 use namespace::autoclean;
 
@@ -6,7 +6,7 @@ BEGIN {extends 'Catalyst::Controller'; }
 
 =head1 NAME
 
-Sandbox::Controller::YUIIOGet - Catalyst Controller
+Sandbox::Controller::YuiIoGet - Catalyst Controller
 
 =head1 DESCRIPTION
 
@@ -22,9 +22,10 @@ Catalyst Controller.
 =cut
 
 sub index :Path :Args(0) {
-    my ( $self, $c ) = @_;
+  my ( $self, $c ) = @_;
 
-    $c->response->body('Matched Sandbox::Controller::YUIIOGet in YUIIOGet.');
+  #$c->response->body('Matched Sandbox::Controller::YuiIoGet in YuiIoGet.');
+  $c->detach( $c->view("TT") );
 }
 
 
