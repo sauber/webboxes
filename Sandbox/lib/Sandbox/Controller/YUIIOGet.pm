@@ -28,6 +28,15 @@ sub index :Path :Args(0) {
   $c->detach( $c->view("TT") );
 }
 
+=head2 assets
+
+=cut
+
+sub assets :Local :Args(1) {
+  my ( $self, $c ) = @_;
+  $c->response->body('Matched Sandbox::Controller::YuiIoGet::assets in YuiIoGet.');
+}
+
 
 =head1 AUTHOR
 

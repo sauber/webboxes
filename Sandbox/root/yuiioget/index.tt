@@ -146,10 +146,12 @@ YUI().use("io",
  
 		function call(e, b) {
 			if (b) {
-				Y.io('assets/get.php?user=YDN&allListeners=1', cfg);
+				/* Y.io('assets/get.php?user=YDN&allListeners=1', cfg); */
+				Y.io('assets?user=YDN&allListeners=1', cfg);
 			}
 			else {
-				Y.io('assets/get.php?user=YDN&globalListeners=1');
+				/* Y.io('assets/get.php?user=YDN&globalListeners=1'); */
+				Y.io('assets?user=YDN&globalListeners=1');
 			}
 		}
  
