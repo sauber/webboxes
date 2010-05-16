@@ -32,7 +32,7 @@ sub index :Path :Args(0) {
 
 =cut
 
-sub assets :Local :Args(1) {
+sub assets :Local :Args(2) {
   my ( $self, $c ) = @_;
   $c->response->body('Matched Sandbox::Controller::YuiIoGet::assets in YuiIoGet.');
 }
