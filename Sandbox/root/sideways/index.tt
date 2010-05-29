@@ -130,20 +130,13 @@ body {
   [% FOREACH slot = engineer.slot -%]
     <ul class="list2"> 
     [% FOREACH project = slot -%]
-      <li class="list2 [% project.priority %] [% project.pipeline %]">[% project.title %]</li>
+      <li id ="[% project.id %]" class="list2 [% project.priority %] [% project.pipeline %]">[% project.title %]</li>
     [% END %]
     </ul>
   [% END %]
 [% END %]
 </div> 
 
-<ul>
-[% FOREACH title = projects -%]
-  <li>[% title.title %]</li>
-[% END %]
-</ul>
-
- 
 <script type="text/javascript"> 
 YUI().use('dd-constrain', 'dd-proxy', 'dd-drop', 'io-base', function(Y) {
     //Listen for all drop:over events
@@ -201,7 +194,7 @@ YUI().use('dd-constrain', 'dd-proxy', 'dd-drop', 'io-base', function(Y) {
             opacity: '1'
         });
         // Inform server of drop:end event
-        var uri = "drag_end?drag=" + drag.get('node');
+        var uri = "drag_end?dragid=" + drag.get('node').get('id');
         var request = Y.io(uri);
     });
     //Listen for all drag:drophit events
@@ -216,7 +209,7 @@ YUI().use('dd-constrain', 'dd-proxy', 'dd-drop', 'io-base', function(Y) {
             }
         }
         // Inform server of drop:drophit event
-        var uri = "drag_drophit?drop=" + drop + "&drag=" + drag;
+        var uri = "drag_drophit?drop=" + drop.get('node').get('id') + "&drag=" + drag.get('node').get('id');
         var request = Y.io(uri);
     });
     
