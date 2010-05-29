@@ -26,7 +26,11 @@ method project_list($query = {}) {
                        trader payment rollout china virtual infra 3.1
                        7.5 ems ett work station used outdated spare cluster
                        loan site team cheetah all of dev prod bcp role host
-                       to from unix windows linux solaris aix);
+                       to from unix windows linux solaris aix investigate
+                       find inventory hongkong singapore australia
+                       taiwan exchange co-host client san local disk
+                       expand grow reduce top xlm mds database app
+                       low high support environment);
     my @pipeline = qw(ficc equity infra gmt transition);
     my @priority = qw(critical important high bau low);
     my $numprojects = 5 + int rand 120;
@@ -79,13 +83,13 @@ method assignment {
   # Delete previous assignment
   delete $_->{slot} for @eng;
   for my $p ( @prj ) {
-    my $randeng = int rand $#eng;
+    my $randeng = int rand 1+$#eng;
     my $randslot = int rand $eng[$randeng]{efficiency};
     push @{ $eng[$randeng]{slot}[$randslot] }, $p;
   }
 
-  use Data::Dumper;
-  warn Dumper @eng;
+  #use Data::Dumper;
+  #warn Dumper @eng;
   return @eng;
 }
 
