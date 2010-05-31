@@ -9,7 +9,7 @@ use Module::Install::Catalyst; # Complain loudly if you don't have
 name 'Sandbox';
 all_from 'lib/Sandbox.pm';
 
-requires 'Catalyst::Runtime' => '5.80022';
+requires 'Catalyst::Runtime' => '5.80013';
 requires 'Catalyst::Plugin::ConfigLoader';
 requires 'Catalyst::Plugin::Static::Simple';
 requires 'Catalyst::Action::RenderView';
@@ -17,7 +17,7 @@ requires 'Catalyst::View::JSON';
 requires 'Catalyst::View::TT';
 requires 'Moose';
 requires 'MongoDB';
-requires 'use MooseX::Method::Signatures';
+requires 'MooseX::Method::Signatures';
 requires 'namespace::autoclean';
 requires 'DateTime::Format::DateParse';
 requires 'Config::General'; # This should reflect the config file format you've chosen
