@@ -18,7 +18,7 @@ our $data = LoadFile $yamlfile;
 
 # Open connection to Mongo DB
 our $conn = MongoDB::Connection->new;
-our $db = $conn->get_database("unixprojects");
+our $db = $conn->get_database("_LOT_UnixProjects");
 
 # Store the config
 our $config = $db->get_collection("config");
@@ -45,7 +45,7 @@ for my $project ( keys %$log ) {
 
 
 # Save all projects to mongo
-our $projects = $db->get_collection("projects");
+our $projects = $db->get_collection("items");
 $projects->drop;
 my $proj = $data->{data};
 while ( my($item,$value) = each %$proj ) {
@@ -56,6 +56,6 @@ while ( my($item,$value) = each %$proj ) {
 # Dump information found in mongo
 my $s = $projects->query();
 while ( my $doc = $s->next ) {
-  print Dumper $doc;
+  #print Dumper $doc;
 }
 
