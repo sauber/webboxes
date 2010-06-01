@@ -89,6 +89,15 @@ method summaryfields {
     $self->fieldlist;
 }
 
+# Generate list of visible fields for expanded view
+#
+method expandedfields {
+  return
+    map $_->{field},
+    grep { $_->{showexpanded} or $_->{editexpanded} }
+    $self->fieldlist;
+}
+
 # All field names of a list
 #
 method allfields {
@@ -100,13 +109,13 @@ method allfields {
 ### Operations on whole lists
 ########################################################################
 
-# Get a summary of all items
+# Get a summary of all items. Include all the option fields.
 #
 method list_summary(
-  Str :$searchq,
   Str :$groupby,
   Str :$orderby,
-  Str :$filterby
+  Str :$filterby,
+  Str :$searchq
 ) {
   # Get a list of summary fields from config
   my @fieldlist = $self->summaryfields();
@@ -130,6 +139,26 @@ method list_summary(
       ( $filterby ? $r->{filterby} : undef ),
 
     ];
+  }
+  return \@list;
+}
+
+# Get the summary and expanded information of all items.
+#
+method list_expanded (
+  Str :$searchq
+) {
+  my @fieldlist = ( $self->summaryfields, $self->expandedfields );
+  my @list;
+
+  my $allitems = $self->items->query;
+  while ( my $r = $allitems->next ) {
+    next unless $self->item_match( item=>$r, keyword=>$searchq );
+    my @table = [ 'Index', $r->{_id}{value} ];
+    for my $f ( @fieldlist ) {
+      push @table, [ $f, $r->{$f} ];
+    }
+    push @list, \@table;
   }
   return \@list;
 }
@@ -345,7 +374,7 @@ sub run {
   #return print textexpanded listexpanded($list,%options) if $expanded;
   #return itemsave( $list, $item, %set ) if %set;
   return print textsummary( $L->list_summary(%options) ) if $summary;
-  return print textexpanded( $L->listexpanded(%options) ) if $expanded;
+  return print textexpanded( $L->list_expanded() ) if $expanded;
   return $L->itemsave( $item, %set ) if %set;
 
 }
