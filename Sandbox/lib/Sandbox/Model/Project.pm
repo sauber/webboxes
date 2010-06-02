@@ -1,6 +1,7 @@
 package Sandbox::Model::Project;
 use Moose;
 use YAML::Syck;
+use Sort::Maker;
 use MooseX::Method::Signatures;
 BEGIN { extends 'Catalyst::Model::MongoDB' };
 
@@ -90,6 +91,17 @@ method summaryfields {
     $self->fieldlist;
 }
 
+# Find out the type of a particular named field
+#
+method fieldtype ( Str :$field ) {
+  return (
+    map { $_->{type} || 'text' }
+    grep { $_->{field} eq $field }
+    $self->fieldlist
+  )[0];
+}
+
+
 # All field names of a list
 #
 method allfields {
@@ -127,10 +139,10 @@ method collection_delete ( Str :$listname ) {
 # Get a summary of all items
 #
 method list_summary(
-  Str :$searchq,
-  Str :$groupby,
-  Str :$orderby,
-  Str :$filterby
+  Str :$searchq?,
+  Str :$groupby?,
+  Str :$orderby?,
+  Str :$filterby?
 ) {
   # Get a list of summary fields from config
   my @fieldlist = $self->summaryfields();
@@ -155,7 +167,55 @@ method list_summary(
 
     ];
   }
-  return \@list;
+  warn "*** There are " . scalar(@list) . " items in summary ***\n";
+  $groupby ||= 'Title';
+  $orderby ||= 'Engineer';
+  return [
+    [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ],
+    @{
+      $self->sortsummary( groupby => $groupby, orderby => $orderby, list => \@list)
+    }
+  ];
+}
+
+# Sort a list first by groupby and then by sortby
+#
+method sortsummary( Str :$groupby?, Str :$orderby?, ArrayRef :$list )  {
+  # Identify the type of field used for sorted
+  my $groupfieldtype = $self->fieldtype( field => $groupby);
+  my $orderfieldtype = $self->fieldtype( field => $orderby);
+
+  # Identify if should sort by string or number
+  my $groupsorttypename = $groupfieldtype . "_sorttype";
+  my $ordersorttypename = $orderfieldtype . "_sorttype";
+  my $grouptypesubref = \&$groupsorttypename ;
+  my $ordertypesubref = \&$ordersorttypename ;
+  my $groupsorttype = &$grouptypesubref();
+  my $ordersorttype = &$ordertypesubref();
+
+  # Make a reference to the sub that produces a value for the type of field
+  my $groupsortcodename = $groupfieldtype . "_sortcode";
+  my $ordersortcodename = $orderfieldtype . "_sortcode";
+  my $groupsortsubref = \&$groupsortcodename;
+  my $ordersortsubref = \&$ordersortcodename;
+
+  # Create sorting code
+  my $sorter = make_sorter(
+    qw( orcish ),
+    'closure',
+    #init_code => 'warn "make_sorter:";',
+    # First by group
+    $groupsorttype => {
+      code => sub { &$groupsortsubref($_->[-3], $_) }
+    },
+    # Then by order
+    $ordersorttype => {
+      code => sub { &$ordersortsubref($_->[-2], $_) }
+    },
+  );
+
+  # Do the sorting, and return ordered list
+  return [ $sorter->(@$list) ];
 }
 
 
@@ -201,6 +261,44 @@ method item_match( HashRef :$item, Any :$keyword? ) {
 method item_selectfields( HashRef :$item, ArrayRef :$fieldlist ) {
   return map $item->{$_}, @$fieldlist;
 }
+
+
+########################################################################
+### Sorting according to field type
+########################################################################
+
+sub text_sorttype { 'string' }
+sub text_sortcode { shift }
+
+sub textarea_sorttype { 'string' }
+sub textarea_sortcode { shift }
+
+sub select_sorttype { 'string' }
+sub select_sortcode { shift }
+
+sub journal_sorttype { 'number' }
+sub journal_sortcode {
+  my $_value = shift;
+  # The timestamp of last entry
+  my $timestamp;
+  if ( ref $_value eq 'ARRAY' ) {
+    $_value->[-1] =~ /^(\d+)/ and $timestamp = $1;
+  } else {
+    $_value =~ /^(\d+)/ and $timestamp = $1;
+  }
+  return $timestamp;
+}
+
+sub activity_sorttype { 'number' } 
+sub activity_sortcode {
+  my $_logdata = shift;
+  my $level = 0;
+  $level -= exp(-(((time()-($_->{time}))/86400)**2)/100) for @$_logdata;
+  return $level;
+}
+
+sub cycle_sorttype { 'number' }
+sub cycle_sortcode { shift || 5 }
 
 
 ########################################################################

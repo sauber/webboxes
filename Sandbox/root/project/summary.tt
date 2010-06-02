@@ -1,0 +1,6 @@
+Summary Template
+<h2>[% title %]</h2>
+
+[% FOREACH item = list %]
+<li>[% item.0 | html %], [% item.1 | html %], [% item.2 | html %]</li>
+[% END %]

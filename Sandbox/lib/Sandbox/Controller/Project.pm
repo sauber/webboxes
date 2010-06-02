@@ -44,7 +44,14 @@ sub create :Chained('base') :PathPart('create') :Args(0) {
 }
 
 sub read :Chained('base') :PathPart('read') :Args(1) {
-  my ($self, $c) = @_;
+  my ($self, $c, $listname) = @_;
+  $c->model('Project')->listname( $listname );
+  $c->stash(
+    template => 'project/summary.tt',
+    title => $listname,
+    list => $c->model('Project')->list_summary(),
+  );
+  $c->detach( $c->view("TT") );
 }
 
 sub update :Chained('base') :PathPart('update') :Args(1) {
