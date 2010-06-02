@@ -1,0 +1,19 @@
+<html>
+<head><title>Existing Project Collections</title></head>
+<body>
+<h1>Welcome to Projects</h1>
+<h2>Powered By ListOfThings</h2>
+<h3>Choose Existing Project Collection</h3>
+<ul>
+[% FOREACH coll = collections %]
+<li>
+  <a href="[% c.uri_for('read',   coll.id) %]">show</a>
+  <a href="[% c.uri_for('update', coll.id) %]">edit</a>
+  <a href="[% c.uri_for('delete', coll.id) %]">delete</a>
+  - [% coll.title | html %]
+</li>
+[% END %]
+</ul>
+<a href="[% c.uri_for(c.controller.action_for('create')) %]">Create New Project Collection</a>
+</body>
+</html>

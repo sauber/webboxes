@@ -1,7 +1,8 @@
-package Sandbox::Model::Projects;
+package Sandbox::Model::Projectdemo;
 use Moose;
 use MooseX::Method::Signatures;
 
+#BEGIN { extends 'ListOfThings::Project' }
 BEGIN { extends 'Catalyst::Model' }
 
 # There are number of projects. Each project has

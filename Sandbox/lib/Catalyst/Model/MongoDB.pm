@@ -33,6 +33,10 @@ sub _build_dbh {
     return $self->connection->get_database($self->dbname);
 }
 
+sub dbnames {
+  MongoDB::Connection->new->database_names();
+}
+
 no Moose;
 
 __PACKAGE__->meta->make_immutable;

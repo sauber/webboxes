@@ -26,8 +26,8 @@ sub index :Path :Args(0) {
 
   # $c->response->body('Matched Sandbox::Controller::sideways in sideways.');
   #$c->model('Projects')->project_list();
-  $c->stash->{projects} = [ $c->model('Projects')->project_list() ];
-  $c->stash->{assignment} = [ $c->model('Projects')->assignment() ];
+  $c->stash->{projects} = [ $c->model('Projectdemo')->project_list() ];
+  $c->stash->{assignment} = [ $c->model('Projectdemo')->assignment() ];
   #use Data::Dumper;
   #warn Dumper $c->stash->{projects};
   #$c->stash->{colors} = [$c->model('Color')->colors()];
