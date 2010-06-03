@@ -142,11 +142,13 @@ method list_summary(
   Str :$searchq?,
   Str :$groupby?,
   Str :$orderby?,
-  Str :$filterby?
+  Str :$filterby?,
+  Str :$deleted?
 ) {
   # Get a list of summary fields from config
   my @fieldlist = $self->summaryfields();
-  my @list = [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ];
+  #my @list = [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ];
+  my %list;
 
   # Read all summary fields from all items
   # Append the fields qw(Delete Index Groupby Orderby Filterby) ];
@@ -156,8 +158,11 @@ method list_summary(
   my $allitems = $self->items->query;
   while ( my $r = $allitems->next ) {
     next unless $self->item_match( item=>$r, keyword=>$searchq );
+    next if not $deleted and $r->{_deleted};
 
-    push @list, [
+    my $groupname = $groupby  ? $r->{$groupby} : $r->{Engineer};
+    $groupname ||= 'UNKNOWN';
+    push @{ $list{$groupname} }, [
       $self->item_selectfields( item=>$r, fieldlist=>\@fieldlist),
       $r->{_deleted},
       $r->{_id}{value},
@@ -167,36 +172,35 @@ method list_summary(
 
     ];
   }
-  warn "*** There are " . scalar(@list) . " items in summary ***\n";
-  $groupby ||= 'Title';
-  $orderby ||= 'Engineer';
-  return [
+  #warn "*** There are " . scalar(@list) . " items in summary ***\n";
+  $orderby ||= 'Title';
+
+  # Sort the groups depending on name of group
+  # Sort each of the lists in each group depending on orderby field
+  # XXX: Should sort the group by number where applicable
+  # XXX: Sorting doesn't actually work at the moment
+  return 
     [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ],
-    @{
-      $self->sortsummary( groupby => $groupby, orderby => $orderby, list => \@list)
-    }
-  ];
+    [ map {{
+        groupname => $_,
+        list      => $self->sortsummary( orderby=>$orderby, list=>$list{$_} ),
+      }}
+    sort keys %list ];
 }
 
 # Sort a list first by groupby and then by sortby
 #
-method sortsummary( Str :$groupby?, Str :$orderby?, ArrayRef :$list )  {
+method sortsummary( Str :$orderby?, ArrayRef :$list )  {
   # Identify the type of field used for sorted
-  my $groupfieldtype = $self->fieldtype( field => $groupby);
   my $orderfieldtype = $self->fieldtype( field => $orderby);
 
   # Identify if should sort by string or number
-  my $groupsorttypename = $groupfieldtype . "_sorttype";
   my $ordersorttypename = $orderfieldtype . "_sorttype";
-  my $grouptypesubref = \&$groupsorttypename ;
   my $ordertypesubref = \&$ordersorttypename ;
-  my $groupsorttype = &$grouptypesubref();
   my $ordersorttype = &$ordertypesubref();
 
   # Make a reference to the sub that produces a value for the type of field
-  my $groupsortcodename = $groupfieldtype . "_sortcode";
   my $ordersortcodename = $orderfieldtype . "_sortcode";
-  my $groupsortsubref = \&$groupsortcodename;
   my $ordersortsubref = \&$ordersortcodename;
 
   # Create sorting code
@@ -204,10 +208,6 @@ method sortsummary( Str :$groupby?, Str :$orderby?, ArrayRef :$list )  {
     qw( orcish ),
     'closure',
     #init_code => 'warn "make_sorter:";',
-    # First by group
-    $groupsorttype => {
-      code => sub { &$groupsortsubref($_->[-3], $_) }
-    },
     # Then by order
     $ordersorttype => {
       code => sub { &$ordersortsubref($_->[-2], $_) }

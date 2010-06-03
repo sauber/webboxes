@@ -17,6 +17,7 @@ use Catalyst qw/
     ConfigLoader
     Static::Simple
     Unicode
+    Prototype
 /;
 
 extends 'Catalyst';
@@ -37,6 +38,14 @@ __PACKAGE__->config(
     name => 'Sandbox',
     # Disable deprecated behavior needed by old applications
     disable_component_resolution_regex_fallback => 1,
+    default_view => 'TT',
+    'View::TT' => {
+      TEMPLATE_EXTENSION => '.tt',
+      INCLUDE_PATH => [
+        Sandbox->path_to( 'root' ),
+        Sandbox->path_to( 'root', 'project' ),
+      ],
+    },
 );
 
 # Start the application

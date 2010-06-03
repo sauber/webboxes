@@ -1,0 +1,59 @@
+[% BLOCK expanditem %]
+  [% PERL %]
+  #use HTML::Prototype;
+
+  ## Identify col# for groupby, orderby etc.
+  #my $filtercol = -1;
+  #my $ordercol  = -2;
+  #my $groupcol  = -3;
+  #my $indexcol  = -4;
+  #my $deletecol = -5;
+
+  #my $list = $stash->get('listname');
+  #my $index = $row->[$indexcol];
+
+  ## Mason
+  ## my $url = $m->scomp( 'link:make',
+  ##   action=>'ajaxexpand', list=>$list, item=>$index
+  ## );
+
+  #$url = "ajax/$list/expand/$index";
+  #$url =~ s/^\s*(.*)\s*/$1/;
+
+  #my $prototype = new HTML::Prototype;
+  #return $prototype->link_to_remote(
+  #  $item, {
+  #    update=>$index,
+  #    url => $url,
+  #    loaded=>"new Effect.toggle('$index', 'blind', {duration:0.2} )",
+  #    evalScripts=>'true',
+  #  }
+  #);
+
+  [% END %]
+[% END %]
+
+[% SET indexcol = row.size - 4 %]
+[% SET rowid = row.$indexcol %]
+
+[%# Summary line %]
+<tr>
+[% FOREACH item IN row %]
+  [% IF loop.first %]
+  [% SET uri = base _ 'project/ajax/' _ listname _ '/expand/' _ rowid  %]
+  <td class="summary">
+  [% c.prototype.link_to_remote( item, {
+       'update' => rowid,
+       'url' => uri,
+       'evalScripts' => 'true',
+     } )
+  %]
+  </td>
+  [% ELSE %]
+  <td class="summary">[% item %]</td>
+  [% END %]
+[% END %]
+</tr>
+
+[%# Expanded line %]
+<tr><td colspan="[% row.size %]" class="expanded"><span id="[% rowid %]" style="display:none"></span></td></tr>
