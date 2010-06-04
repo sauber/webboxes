@@ -60,8 +60,8 @@ method project_collections {
     # The shortname and the long name
     push @list, { id => $dbn, title => $self->schema->query->next->{name} };
   }
-  use Data::Dumper;
-  warn Dumper \@list;
+  #use Data::Dumper;
+  #warn Dumper \@list;
   return @list;
 }
 
@@ -91,6 +91,15 @@ method summaryfields {
     $self->fieldlist;
 }
 
+# Generate list of visible summary fields in a list
+#
+method expandedfields {
+  return
+    map $_->{field},
+    grep { $_->{showexpanded} or $_->{editexpanded} }
+    $self->fieldlist;
+}
+
 # Find out the type of a particular named field
 #
 method fieldtype ( Str :$field ) {
@@ -99,6 +108,16 @@ method fieldtype ( Str :$field ) {
     grep { $_->{field} eq $field }
     $self->fieldlist
   )[0];
+}
+
+# Decide if a field can be edited or nor
+#
+method field_canedit ( Str :$field ) {
+  for my $f ( $self->fieldlist ) {
+    next unless $f->{field} eq $field;
+    return 1 if $f->{editsummary} or $f->{editexpanded};
+  }
+  return undef;
 }
 
 
@@ -226,7 +245,8 @@ method sortsummary( Str :$orderby?, ArrayRef :$list )  {
 # Read a single item
 #
 method item_read( Str :$item_id ) {
-  my $objid = MongoDB::OID->new($item_id);
+  #my $objid = MongoDB::OID->new($item_id);
+  my $objid = $self->oid($item_id);
   my $matches = $self->items->query({ _id => $objid });
   return $matches->next;
 }
@@ -260,6 +280,21 @@ method item_match( HashRef :$item, Any :$keyword? ) {
 
 method item_selectfields( HashRef :$item, ArrayRef :$fieldlist ) {
   return map $item->{$_}, @$fieldlist;
+}
+
+method item_expanded( Str :$item_id ) {
+  my $item = $self->item_read( item_id => $item_id );
+  my @fieldlist = $self->expandedfields();
+  my @list;
+  for my $fieldname ( @fieldlist ) {
+    push @list, {
+      fieldname => $fieldname,
+      fieldtype => $self->fieldtype( field => $fieldname),
+      value     => $item->{$fieldname},
+      canedit   => $self->field_canedit( field => $fieldname),
+    }
+  }
+  return \@list;
 }
 
 

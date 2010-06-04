@@ -1,0 +1,20 @@
+[%#
+  Identify col# for groupby, orderby etc.
+  filtercol = -1;
+  ordercol  = -2;
+  groupcol  = -3;
+  indexcol  = -4;
+  deletecol = -5;
+-%]
+<table class="summary>
+[% FOREACH item IN record %]
+  <tr valign="top">
+    <th>[% item.fieldtype %] - [% item.fieldname %]<th>
+    [% IF item.canedit %]
+    <td>edit [% item.value %]<td>
+    [% ELSE %]
+    <td>[% item.value %]<td>
+    [% END %]
+  </tr>
+[% END %]
+</table>

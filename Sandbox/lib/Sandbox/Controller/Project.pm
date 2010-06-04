@@ -124,6 +124,22 @@ sub list :Local {
   $c->detach( $c->view("TT") );
 }
 
+# Handle ajax calls
+sub ajax :Local :Args(3) {
+  my($self, $c, $listname, $action, $item) = @_;
+
+  $c->model('Project')->listname( $listname );
+  my $record = $c->model('Project')->item_expanded( item_id => $item);
+  #use Data::Dumper;
+  #$c->log->debug('*** ' . Dumper($record) . ' ***');
+  $c->stash(
+    template   => 'project/itemexpand.tt',
+    record     => $record,
+    no_wrapper => 1,
+  );
+  $c->detach( $c->view("TT") );
+};
+
 
 =head1 AUTHOR
 

@@ -1,5 +1,6 @@
 package Catalyst::Model::MongoDB;
 use MongoDB;
+use MongoDB::OID;
 use Moose;
 
 BEGIN { extends 'Catalyst::Model' }
@@ -35,6 +36,11 @@ sub _build_dbh {
 
 sub dbnames {
   MongoDB::Connection->new->database_names();
+}
+
+sub oid {
+  my($self, $_id) = @_;
+  return MongoDB::OID->new( value => $_id );
 }
 
 no Moose;
