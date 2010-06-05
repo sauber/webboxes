@@ -138,6 +138,7 @@ sub ajax :Local :Args(3) {
     no_wrapper => 1,
   );
   $c->detach( $c->view("TT") );
+
 };
 
 
