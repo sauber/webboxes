@@ -1,30 +1,40 @@
-[% IF showitem %]
-  [% value %]
-[% ELSIF showsummary %]
-  [% value %]
-[% ELSIF showexpanded %]
-  [% value %]
-[% ELSIF edititem %]
-  <input name="[% fieldname %]" size="[% fieldsize %]" value="[% value | html %]" class="edititem">
-[% ELSIF editsummary %]
-  [% idtag = 'editsummary ' _ id _ ' field ' _ fieldname %]
-  [% urlpart = [ '/' 'ajax' listname 'get' id fieldname ] %]
-  [% url = urlpart.join %]
+[% BLOCK show %]
+[% c.markdown.markdown(item.value) %]
+[% END %]
+
+[% BLOCK edit %]
+<input name="[% item.fieldname %]" size="[% item.fieldsize %]" value="[% item.value | html %]" class="edititem">
+<textarea name="[% item.fieldname %]" rows="[% rows %]" cols="[% cols %]" style="edititem">[% value | html %]</textarea>
+[% END %]
+
+[% BLOCK ajax %]
+  [% idtag = id _ ' ' _ item.fieldname %]
+  [% urlpart = [ 'project' 'ajax' listname 'field' id item.fieldname ] %]
+  [% url = base _ urlpart.join('/') %]
   <span id="[% idtag %]" class="summary">
-  [% IF value %]
-    [% value %]
+  [% IF item.value %]
+    [% item.value %]
   [% ELSE %]
     <em>edit</em>
   [% END %]
   </span>
   [%
-     c.prototyp.in_place_editor( idtag, {
+     c.prototype.in_place_editor( idtag, {
        'load_text_url' => url,
        'url' => url,
+       'rows' => 5,
      } )
   %]
-[% ELSIF editexpanded %]
-  not implemented
-[% ELSE %]
-  no type specified
 [% END %]
+
+[% IF ( item.editsummary and context == 'summary' ) or ( item.editexpanded and conext == 'expanded' ) %]
+  [% INCLUDE ajax %]
+  [% RETURN %]
+[% END %]
+
+[% IF context == 'edit' %]
+  [% INCLUDE edit %]
+  [% RETURN %]
+[% END %]
+
+[% INCLUDE show %]

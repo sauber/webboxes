@@ -18,6 +18,7 @@ use Catalyst qw/
     Static::Simple
     Unicode
     Prototype
+    Markdown
 /;
 
 extends 'Catalyst';

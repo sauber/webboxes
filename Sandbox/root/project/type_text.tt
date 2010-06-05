@@ -1,14 +1,12 @@
-[% SWITCH context %]
-[%   CASE 'item' %]
-[%     IF item.showitem %]
-[%        item.value %]
-[%  ELSIF item.edititem %]
-  <input name="[% item.fieldname %]" size="[% item.fieldsize %]" value="[% item.value | html %]" class="edititem">
-[%    END %]
-[%   CASE 'summary' %]
-[%     IF item.showsummary %]
-[%        item.value %]
-[%  ELSIF item.editsummary %]
+[% BLOCK show %]
+[% item.value %]
+[% END %]
+
+[% BLOCK edit %]
+<input name="[% item.fieldname %]" size="[% item.fieldsize %]" value="[% item.value | html %]" class="edititem">
+[% END %]
+
+[% BLOCK ajax %]
   [% idtag = id _ ' ' _ item.fieldname %]
   [% urlpart = [ 'project' 'ajax' listname 'field' id item.fieldname ] %]
   [% url = base _ urlpart.join('/') %]
@@ -26,13 +24,16 @@
        'rows' => 1,
      } )
   %]
-[%    END %]
-[%   CASE 'expanded' %]
-[%     IF item.showexpanded %]
-[%        item.value %]
-[%  ELSIF item.editexpanded %]
-  not implemented
-[%    END %]
-[%   CASE %]
-No context
 [% END %]
+
+[% IF ( item.editsummary and context == 'summary' ) or ( item.editexpanded and conext == 'expanded' ) %]
+  [% INCLUDE ajax %]
+  [% RETURN %]
+[% END %]
+
+[% IF context == 'edit' %]
+  [% INCLUDE edit %]
+  [% RETURN %]
+[% END %]
+
+[% INCLUDE show %]

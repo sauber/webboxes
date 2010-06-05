@@ -7,13 +7,14 @@
   deletecol = -5;
 -%]
 <table class="summary>
+[% SET context = 'expanded' %]
 [% FOREACH item IN record %]
   <tr valign="top">
-    <th>[% item.fieldtype %] - [% item.fieldname %]<th>
+    <th>[% item.type %] - [% item.fieldname %]<th>
     [% IF item.canedit %]
     <td>edit [% item.value %]<td>
     [% ELSE %]
-    <td>[% item.value %]<td>
+    <td>[% INCLUDE renderfield %]<td>
     [% END %]
   </tr>
 [% END %]
