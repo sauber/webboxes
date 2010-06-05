@@ -1,0 +1,617 @@
+<%doc>
+Methods to display, edit and sort single fields.
+Soren, Aug 2008
+
+Fieldtypes:
+  text
+  textarea
+  select
+  journal
+  checkboxgroup
+  eta
+  activity
+
+Methods:
+  showsummary
+  editsummary
+  showexpanded
+  editexpanded
+  edititem
+  showitem
+  sorttype
+  sortcode
+</%doc>
+\
+<%args>
+$render=>undef
+$list=>undef
+$item=>undef
+$field=>undef
+$LOT=>undef
+$stats=>undef
+</%args>
+\
+<%shared>
+my $_type;
+my $_name;
+my $_value;
+my $_size;
+my $_options;
+my $_fieldconfig;
+my $_template;
+my $_item;
+my $_list;
+my $_itemdata;
+my @_logdata;
+my $prototype = new HTML::Prototype;
+my $_LOL;
+</%shared>
+\
+<%once>
+use HTML::Prototype;
+use Statistics::LineFit;
+#use Date::Format;
+use Text::Markdown 'markdown';
+</%once>
+<%init>
+$_fieldconfig = $LOT->fieldconfig();
+$_template    = $LOT->templateconfig();
+$_itemdata    = $LOT->itemread($item);
+@_logdata     = $LOT->logentries($item);
+$_LOL         = $LOT;
+
+# XXX: template
+$_type = $_fieldconfig->{$field}{type} || 'text';
+$_name = $field;
+$_item = $item;
+$_list = $list;
+$_value = $_itemdata->{$field};
+$_size = $_fieldconfig->{$field}{size};
+$_options = $_fieldconfig->{$field}{choices};
+
+my $canedit; $canedit=1 if $MHQ::user;
+$render =~ s/^edit/show/ unless $canedit;
+#if ( substr($render,0,4) == 'edit' ) {
+#  unless ( $canedit ) {
+#    substr($render,0,4) = 'edit';
+#  }
+#}
+
+#warn Data::Dumper->Dump(
+#  [$list, $item, $field, $_name, $_type, $_value, $_size, $_options],
+#  [qw(list item field name type value size options)]
+#) . "---\n";
+
+# An array can be represented as either notdefined, a scalar or an array
+# Make it always an array
+#
+sub makearray {
+  my $valueref = shift;
+
+  my @list = ();
+  if ( $valueref ) {
+    if ( ref $valueref eq 'ARRAY' ) {
+      push @list, @$valueref;
+    } else {
+      push @list, $valueref;
+    }
+  }
+  return @list;
+}
+</%init>
+\
+<%
+  ######################################################################## 
+  ### text
+  ######################################################################## 
+%>\
+\
+<%def .text_showsummary>\
+<% $_value %>\
+</%def>
+\
+<%def .text_showexpanded>\
+<% $_value %>\
+</%def>
+\
+<%def .text_edititem>\
+<input name="<% $_name %>" size="<% $_size %>" value="<% $_value |h %>" class="edititem">\
+</%def>\
+\
+<%def .text_editsummary>\
+<%perl>
+my $idtag = ListOfThings::urlencode("edit $_item $_name");
+my $url = $m->scomp('link:make', action=>'ajaxdata', list=>$_list, item=>$_item, field=>$_name);
+$url =~ s/^\s*(.*)\s*/$1/; # Strip white space
+my $editor = $prototype->in_place_editor( $idtag, {
+  load_text_url=>$url,
+  url=>$url,
+} );
+</%perl>
+<span id='<% $idtag %>' class="summary"><% $_value ? $_value : '<em>edit</em>' %></span><% $editor %>
+</%def>\
+\
+<%def .text_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .text_sorttype>\
+string\
+</%def>
+\
+<%def .text_sortcode>\
+<% $_value %>\
+</%def>
+\
+<%
+  ######################################################################## 
+  ### textarea
+  ######################################################################## 
+%>\
+\
+<%def .textarea_showsummary>\
+<% $_value %>\
+</%def>
+\
+<%def .textarea_showexpanded>\
+<% $_value ? markdown($_value) : '' %>\
+</%def>
+\
+<%def .textarea_edititem>\
+% my($cols,$rows) = split /x/, $_size;
+<textarea name="<% $_name %>" rows="<% $rows %>" cols="<% $cols %>" style="edititem"><% $_value |h %></textarea><br />\
+Use <a href="http://daringfireball.net/projects/markdown/syntax">Markdown</a> syntax.\
+</%def>
+\
+<%def .textarea_editsummary>\
+Not implemented
+</%def>\
+\
+<%def .textarea_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .textarea_sorttype>\
+string\
+</%def>
+\
+<%def .textarea_sortcode>\
+<% $_value %>\
+</%def>
+\
+<%
+  ######################################################################## 
+  ### select
+  ######################################################################## 
+%>\
+\
+<%def .select_showsummary>\
+<% $_value %>\
+</%def>
+\
+<%def .select_showexpanded>\
+<% $_value %>\
+</%def>
+\
+<%def .select_edititem>\
+<select name="<% $_name %>" class="edititem">
+% for my $option ( grep /\S/, "Please select...", @$_options ) {
+<option<% $_value eq $option ? ' selected' : '' %>><% $option %></option>
+% }
+</select>\
+</%def>
+\
+<%def .select_editsummary>\
+Not implemented
+</%def>\
+\
+<%def .select_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .select_sorttype>\
+string\
+</%def>
+\
+<%def .select_sortcode>\
+<% $_value %>\
+</%def>
+\
+<%
+  ######################################################################## 
+  ### journal
+  ######################################################################## 
+%>\
+\
+<%def .journal_showsummary>\
+<%perl>
+my @entries = makearray($_value);
+my $line = @entries ? $entries[-1] : '';
+$line =~ s/^(\d+):/scalar(localtime($1))/e;
+</%perl>
+% # Show last entry
+<% $line %>
+</%def>
+\
+<%def .journal_showexpanded>\
+<%perl>
+my @recent = reverse makearray($_value);
+@recent =
+  map { s/^(\d+):/scalar(localtime($1))/e; $_ }
+  grep /./, reverse @recent[0..4];
+</%perl>
+<% join '<br />', map { s/^(\d+):/scalar(localtime($1))/e; $_ } @recent %>\
+</%def>
+\
+<%def .journal_edititem>\
+% my @entries = makearray($_value);
+% for my $entry ( @entries ) {
+%   (my $humantime = $entry ) =~ s/^(\d+):/scalar(localtime($1))/e;
+<tt><% $humantime %></tt><br />
+<input type=hidden name="<% $_name %>" value="<% $entry %>">
+% }
+<input name="<% $_name %>" size="<% $_size || 60 %>" class="edititem">\
+</%def>
+\
+<%def .journal_editsummary>\
+Not implemented
+</%def>\
+\
+<%def .journal_editexpanded>\
+<%perl>
+#my $idtag = ListOfThings::urlencode("expedit $_item $_name");
+my $idtag = "expand " . ListOfThings::urlencode($_item);
+#my $url = $m->scomp('link:make', action=>'ajaxdata', list=>$_list, item=>$_item, append=>$_name);
+my $url = $m->scomp('link:make', action=>'ajaxexpand', list=>$_list, item=>$_item, append=>$_name);
+$url =~ s/^\s*(.*)\s*/$1/; # Strip white space
+#my $editor = $prototype->in_place_editor( $idtag, {
+#  load_text_url=>$url,
+#  url=>$url,
+#} );
+
+my $form = $prototype->form_remote_tag( {
+  update => $idtag,
+  url    => $url,
+  evalScripts=>'true',
+});
+#warn $form;
+
+#my $refresh = $prototype->link_to_remote( 'Refresh', {
+#  update=>$idtag,
+#  url=>$url,
+#  evalScripts=>'true',
+#} );
+
+# Get last 5 entries
+my @recent = reverse makearray($_value);
+@recent =
+  map { s/^(\d+):/scalar(localtime($1))/e; $_ }
+  grep /./, reverse @recent[0..4];
+</%perl>
+%#<span id='<% $idtag %>' class="summary">\
+<% join '<br />', @recent %>\
+%#</span>
+<% $form %>
+<input type=hidden name="append" value="<% $_name %>">
+New entry: <input name="<% $_name %>" size="<% $_size || 60 %>" class="edititem">
+</form>
+%#<% $refresh %>
+</%def>\
+\
+<%def .journal_sorttype>\
+number\
+</%def>
+\
+<%def .journal_sortcode>\
+<%perl>
+# The timestamp of last entry
+my $timestamp;
+if ( ref $_value eq 'ARRAY' ) {
+  $_value->[-1] =~ /^(\d+)/ and $timestamp = $1;
+} else {
+  $_value =~ /^(\d+)/ and $timestamp = $1;
+}
+</%perl>
+<% $timestamp %>\
+</%def>
+\
+<%
+  ######################################################################## 
+  ### checkboxgroup
+  ######################################################################## 
+%>\
+\
+<%def .checkboxgroup_showsummary>
+<%perl>
+# Which to color
+#my %values = map {$_=>1} ( $_value and ref $_value eq 'ARRAY' ) ? @$_value : ();
+my %values = map {$_=>1} makearray($_value);
+# Calculate the color for each choice
+my %color;
+for my $g ( @$_options ) {
+  if ( ref $g->{choices} eq 'ARRAY' ) {
+    my $groupname = $g->{name};
+    my $base = $m->comp(
+      'color', method=>'startcolor', string=>$groupname, maxdarkness=>0.5, maxbrightness=>0.8, seed=>9, step=>32
+    );
+    $color{$groupname}{basecolor} = $base;
+    my $s = scalar @{ $g->{choices} };
+    $color{$groupname}{numchoices} = $s;
+    for my $i ( 0 .. $s-1 ) {
+      my $choice = $g->{choices}[$i];
+      if ( $values{$choice} ) { 
+        my $gam = -0.7*(-0.5+($s>=2 ? $i/($s-1) : 0.5));
+        my $col = $m->comp(
+          'color', method=>'adjustgamma', startcolor=>$base, gamma=>$gam
+        );
+        #warn "choice: " . $g->{choices}[$i] . "\n";
+        $color{$groupname}{$choice} = $col;
+      } else {
+        $color{$groupname}{$choice} = '#FFFFFF';
+      }
+    }
+  }
+}
+#warn "checkboxcolor: " . Dumper \%color;
+#warn "checkboxcolor: " . Dumper $_value;
+</%perl>
+% if ( @$_options ) {
+%   for my $g ( @$_options ) {
+<span style="border: 1px solid black; overflow: auto;">\
+%     if ( ref $g->{choices} eq 'ARRAY' ) {
+%       for my $c ( @{ $g->{choices} } ) {
+<span style="background-color: <% $color{$g->{name}}{$c} %>">&nbsp;</span>\
+%       }
+%     }
+</span>\
+%   }
+% }
+</%def>
+\
+<%def .checkboxgroup_edititem>\
+% #my %V = map { $_=>1 } ref $_value eq 'ARRAY' ? @$_value : $_value;
+% my %V = map { $_=>1 } makearray($_value);
+% for my $group ( @$_options ) {
+<h5><% $group->{name} %>:</h5>
+%   for my $choice ( @{ $group->{choices} } ) {
+<input type=checkbox name="<% $_name %>" value="<% $choice %>"<% $V{$choice} ? ' checked' : '' %> class="edititem"> <% $choice %><br />
+%   }
+% }
+</%def>
+\
+<%def .checkboxgroup_editsummary>\
+Not implemented
+</%def>\
+\
+<%def .checkboxgroup_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .checkboxgroup_sorttype>\
+number\
+</%def>
+\
+<%def .checkboxgroup_sortcode>\
+<% $_value ? scalar(makearray($_value)) : 0 %>\
+</%def>
+\
+<%
+  ######################################################################## 
+  ### templateselect
+  ######################################################################## 
+%>\
+\
+<%def .templateselect_showsummary>\
+<%perl>
+# Make temporary copy
+my %tmp = ( type=>$_type, value=>$_value, options=>$_options );
+my $templatename = $_itemdata->{"${_name}_select"};
+$_type    = $_template->{$templatename}{type} || 'text';
+$_value   = $_itemdata->{$_name."_value"};
+$_options = $_template->{$templatename}{choices};
+#warn "templatename: $templatename\n";
+#warn "templatetype: $_type\n";
+</%perl>
+% if ( $templatename and $_type ) {
+<& ".${_type}_showsummary" &>\
+% } else {
+<em>Invalid template</em>\
+% }
+<%perl>
+# Restore temporary backup
+$_type = $tmp{type};
+$_value = $tmp{value};
+$_options = $tmp{options};
+</%perl>
+</%def>
+\
+<%def .templateselect_edititem>\
+<%perl>
+# Make temporary copy
+my %tmp = ( type=>$_type, name=>$_name, value=>$_value, options=>$_options );
+my $templatename = $_itemdata->{"${_name}_select"};
+$_name    = $_name.'_select';
+$_value   = $templatename;
+#$_options = $_fieldconfig->{$_name}{choices};
+$_options = [ keys %$_template ];
+#warn Data::Dumper->Dump(
+#  [$templatename, $_name, $_type, $_value, $_size, $_options],
+#  [qw(templatename name type value size options)]
+#) . "---\n";
+</%perl>
+<& .select_edititem &>\
+<%perl>
+$_type    = $_template->{$templatename}{type};
+$_name    =~ s/_select/_value/;
+$_value   = $_itemdata->{$_name};
+$_options = $_template->{$templatename}{choices};
+#warn Data::Dumper->Dump(
+#  [$templatename, $_name, $_type, $_value, $_size, $_options],
+#  [qw(templatename name type value size options)]
+#) . "---\n";
+</%perl>
+% if ( $templatename and $_type ) {
+<& ".${_type}_edititem" &>\
+% } else {
+Select template and save to input template data\
+% }
+<%perl>
+# Restore temporary backup
+$_type = $tmp{type};
+$_name = $tmp{name};
+$_value = $tmp{value};
+$_options = $tmp{options};
+</%perl>
+</%def>
+\
+<%def .templateselect_editsummary>\
+Not implemented
+</%def>\
+\
+<%def .templateselect_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .templateselect_sorttype>\
+string\
+</%def>
+\
+<%def .templateselect_sortcode>\
+Not implemented
+</%def>
+\
+<%
+  ######################################################################## 
+  ### eta
+  ######################################################################## 
+%>\
+\
+<%def .eta_showsummary>\
+<% $_LOL->itemcompletion($_item) || 'Cannot determine' %>
+</%def>
+\
+<%def .eta_showexpanded>\
+<% $_LOL->itemcompletion($_item) || 'Cannot determine' %>
+</%def>
+\
+<%def .eta_edititem>\
+<% $_LOL->itemcompletion($_item) || 'Cannot determine' %>
+</%def>
+\
+<%def .eta_editsummary>\
+Not implemented\
+</%def>
+\
+<%def .eta_editexpanded>\
+<% $_LOL->itemcompletion($_item) || 'Cannot determine' %>
+</%def>
+\
+<%def .eta_sorttype>\
+number\
+</%def>
+\
+<%def .eta_sortcode>\
+% $_LOL->itemcompletion(); # Generate number
+<% $_LOL->{eta}{$_item}{eta} || 60*60*24*365*99 %>
+</%def>
+\
+<%
+  ########################################################################
+  ### activity
+  ########################################################################
+%>\
+\
+<%def .activity_showsummary>\
+<%perl>
+my $daysago = '~';
+if ( $_logdata[-1] ) {
+  my $lastupdate = $_logdata[-1]{time};
+  $daysago = int ( ( time - $lastupdate ) / 86400 );
+}
+</%perl>
+<% $daysago %> days ago
+</%def>\
+\
+<%def .activity_showexpanded>\
+Not implemented\
+</%def>\
+\
+<%def .activity_edititem>\
+Automatically calculated\
+</%def>\
+\
+<%def .activity_editsummary>\
+Not implemented\
+</%def>\
+\
+<%def .activity_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .activity_sorttype>\
+number\
+</%def>\
+\
+<%def .activity_sortcode>\
+<%perl>
+my $level = 0;
+$level -= exp(-(((time()-($_->{time}))/86400)**2)/100) for @_logdata;
+</%perl>
+<% $level %>
+</%def>\
+\
+<%
+  ########################################################################
+  ### activity
+  ########################################################################
+%>\
+\
+<%def .cycle_showsummary>\
+<% $_value || 5 %>\
+</%def>\
+\
+<%def .cycle_showexpanded>\
+<% $_value || 5 %>\
+</%def>\
+\
+<%def .cycle_edititem>\
+<input name="<% $_name %>" size="<% $_size %>" value="<% $_value |h %>" class="edititem">\
+</%def>\
+\
+<%def .cycle_editsummary>\
+<%perl>
+my $curval = $_value || 5;
+my $nextval = $curval+1; $nextval = 1 if $nextval > 5;
+my $img = "<img src=\"/images/${_name}-${curval}.png\" border=0 />";
+my $idtag = ListOfThings::urlencode("edit $_item $_name");
+my $url = $m->scomp('link:make', action=>'ajaxdata', list=>$_list, item=>$_item, field=>$_name, value=>$nextval);
+$url =~ s/^\s*(.*)\s*/$1/; # Strip white space
+my $editor = $prototype->link_to_remote( $img, {
+  url=>$url,
+  update=>$idtag,
+} );
+$editor =~ s/&lt;/</;
+$editor =~ s/&gt;/>/;
+</%perl>
+<span id='<% $idtag %>' class="summary"><% $editor %></span>
+</%def>\
+\
+<%def .cycle_editexpanded>\
+Not implemented
+</%def>\
+\
+<%def .cycle_sorttype>\
+number\
+</%def>\
+\
+<%def .cycle_sortcode>\
+<% $_value || 5 %>\
+</%def>\
+\
+<%
+  ######################################################################## 
+  ### main
+  ######################################################################## 
+%>\
+\
+<& ".${_type}_${render}" &>\
