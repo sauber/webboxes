@@ -9,6 +9,7 @@
 
 [% SET indexcol = row.size - 4 %]
 [% SET rowid = row.$indexcol %]
+[% SET context = 'summary' %]
 
 [%# Summary line %]
 <tr>
@@ -25,11 +26,21 @@
   %]
   </td>
   [% ELSE %]
-  <td class="summary">[% INCLUDE project/type_text.tt %]</td>
+    [% SWITCH item.fieldtype  %]
+    [%   CASE 'textarea' %]
+      <td class="summary">[% INCLUDE project/type_textarea.tt %]</td>
+    [%   CASE %]
+      <td class="summary">[% INCLUDE project/type_text.tt context='summary' id=rowid %]</td>
+    [% END %]
   [% END %]
+  [% LAST IF loop.count == colspan - 1 %]
 [% END %]
+<td class="summary">
+<a href="[% base _ 'project/item/view/' _ rowid %]">view</a>
+<a href="[% base _ 'project/item/edit/' _ rowid %]">edit</a>
+</td>
 </tr>
 
 [%# Expanded line %]
 [%# style="display:none" %]
-<tr><td colspan="[% row.size %]" class="expanded"><span id="[% rowid %]" style="display:none"></span></td></tr>
+<tr><td colspan="[% colspan %]" class="expanded"><span id="[% rowid %]" style="display:none"></span></td></tr>

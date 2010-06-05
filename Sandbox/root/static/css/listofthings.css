@@ -34,10 +34,12 @@ tr.summarydel {
 th.summary {
   border-bottom: 3px solid #000;
   padding-right: 4px;
+  border-right: 1px dotted gray;
 }
 
 td.summary {
   /* border-bottom: 1px dotted gray; */
+  border-right: 1px dotted gray;
 }
 
 td.expanded {
@@ -48,6 +50,7 @@ td.expanded {
 
 tr.groupby {
   color: #00f;
+  border-right: 1px dotted gray;
 }
 
 table.legend {

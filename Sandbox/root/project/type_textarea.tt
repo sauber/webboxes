@@ -1,0 +1,30 @@
+[% IF showitem %]
+  [% value %]
+[% ELSIF showsummary %]
+  [% value %]
+[% ELSIF showexpanded %]
+  [% value %]
+[% ELSIF edititem %]
+  <input name="[% fieldname %]" size="[% fieldsize %]" value="[% value | html %]" class="edititem">
+[% ELSIF editsummary %]
+  [% idtag = 'editsummary ' _ id _ ' field ' _ fieldname %]
+  [% urlpart = [ '/' 'ajax' listname 'get' id fieldname ] %]
+  [% url = urlpart.join %]
+  <span id="[% idtag %]" class="summary">
+  [% IF value %]
+    [% value %]
+  [% ELSE %]
+    <em>edit</em>
+  [% END %]
+  </span>
+  [%
+     c.prototyp.in_place_editor( idtag, {
+       'load_text_url' => url,
+       'url' => url,
+     } )
+  %]
+[% ELSIF editexpanded %]
+  not implemented
+[% ELSE %]
+  no type specified
+[% END %]

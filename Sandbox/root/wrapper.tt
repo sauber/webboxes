@@ -19,13 +19,6 @@
 </div>
 
 <div id="bodyblock">
-<div id="menu">
-    Navigation:
-    <ul>
-        <li><a href="[% c.uri_for('/books/list') %]">Home</a></li>
-        <li><a href="[% c.uri_for('/') %]" title="Catalyst Welcome Page">Welcome</a></li>
-    </ul>
-</div><!-- end menu -->
 
 <div id="content">
     [%# Status and error messages %]

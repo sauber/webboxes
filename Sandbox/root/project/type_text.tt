@@ -1,0 +1,38 @@
+[% SWITCH context %]
+[%   CASE 'item' %]
+[%     IF item.showitem %]
+[%        item.value %]
+[%  ELSIF item.edititem %]
+  <input name="[% item.fieldname %]" size="[% item.fieldsize %]" value="[% item.value | html %]" class="edititem">
+[%    END %]
+[%   CASE 'summary' %]
+[%     IF item.showsummary %]
+[%        item.value %]
+[%  ELSIF item.editsummary %]
+  [% idtag = id _ ' ' _ item.fieldname %]
+  [% urlpart = [ 'project' 'ajax' listname 'field' id item.fieldname ] %]
+  [% url = base _ urlpart.join('/') %]
+  <span id="[% idtag %]" class="summary">
+  [% IF item.value %]
+    [% item.value %]
+  [% ELSE %]
+    <em>edit</em>
+  [% END %]
+  </span>
+  [%
+     c.prototype.in_place_editor( idtag, {
+       'load_text_url' => url,
+       'url' => url,
+       'rows' => 1,
+     } )
+  %]
+[%    END %]
+[%   CASE 'expanded' %]
+[%     IF item.showexpanded %]
+[%        item.value %]
+[%  ELSIF item.editexpanded %]
+  not implemented
+[%    END %]
+[%   CASE %]
+No context
+[% END %]

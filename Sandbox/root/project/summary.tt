@@ -8,13 +8,16 @@ Summary Template
 <table class="summary">
 
 <tr>
-[% FOREACH header in fieldlist %]
-  <th> class="summary">[% $header %]</th>
+[% FOREACH header IN fieldlist %]
+  <th class="summary">[% header %]</th>
+  [% LAST IF loop.count >= fieldlist.size - 5 %]
 [% END %]
+  <th class="summary">More</th>
 </tr>
 
+[% SET colspan = fieldlist.size - 4 %]
 [% FOREACH group IN list %]
-  <tr><th colspan="[% fieldlist.size %]">[% group.groupname %]</th></tr>
+  <tr><th colspan="[% colspan %]">[% group.groupname %]</th></tr>
   [% FOREACH row = group.list %]
     [% INCLUDE itemsummary.tt %]
   [% END %]

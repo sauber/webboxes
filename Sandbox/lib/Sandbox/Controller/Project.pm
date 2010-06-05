@@ -125,21 +125,48 @@ sub list :Local {
 }
 
 # Handle ajax calls
-sub ajax :Local :Args(3) {
-  my($self, $c, $listname, $action, $item) = @_;
+sub ajax :Chained('base') :PathPart('ajax') :CaptureArgs(1) {
+  my($self, $c, $listname) = @_;
 
   $c->model('Project')->listname( $listname );
+}
+
+sub expand :Chained('ajax') :PathPart('expand') :Args(1) {
+  my($self, $c, $item) = @_;
   my $record = $c->model('Project')->item_expanded( item_id => $item);
-  #use Data::Dumper;
-  #$c->log->debug('*** ' . Dumper($record) . ' ***');
   $c->stash(
     template   => 'project/itemexpand.tt',
     record     => $record,
     no_wrapper => 1,
   );
   $c->detach( $c->view("TT") );
+}
 
-};
+#sub get :Chained('ajax') :PathPart('get') :Args(2) {
+#  my($self, $c, $item, $field) = @_;
+#  $c->response->body(
+#    $c->model('Project')->field_getvalue( item_id => $item, fieldname => $field )
+#  );
+#}
+
+sub field :Chained('ajax') :PathPart('field') :Args(2) {
+  my($self, $c, $item, $field) = @_;
+
+  my $value;
+  if ( $value = $c->request->params->{value} ) {
+    #$c->log->debug("*** ajax save field $field value $value ***");
+    $c->model('Project')->item_update(
+      item_id => $item,
+      updates => { $field => $value },
+    );
+  } else {
+    $value =
+      $c->model('Project')->field_getvalue( item_id => $item, fieldname => $field );
+    #$c->log->debug("*** ajax load field $field value $value ***");
+  }
+  $c->response->body( $value );
+  
+}
 
 
 =head1 AUTHOR

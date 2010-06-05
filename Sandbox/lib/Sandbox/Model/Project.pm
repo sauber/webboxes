@@ -129,7 +129,6 @@ method field_attributes ( Str :$field ) {
   return {};
 }
 
-
 # All field names of a list
 #
 method allfields {
@@ -175,7 +174,7 @@ method list_summary(
 ) {
   # Get a list of summary fields from config
   my @fieldlist = $self->summaryfields();
-  #my @list = [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ];
+  my %attr = map { $_ => $self->field_attributes( field => $_) } @fieldlist;
   my %list;
 
   # Read all summary fields from all items
@@ -192,12 +191,12 @@ method list_summary(
     $groupname ||= 'UNKNOWN';
     push @{ $list{$groupname} }, [
       ( 
-         map {
-           warn "Getting apttributes for fieldname $_\n";
-           $self->field_get( item => $r, fieldname => $_ )
-         }
+         map {{
+           value => $r->{$_},
+           fieldname => $_,
+           %{ $attr{$_} },
+         }}
          @fieldlist
-         #$self->item_selectfields( item=>$r, fieldlist=>\@fieldlist),
       ),
       $r->{_deleted},
       $r->{_id}{value},
@@ -214,13 +213,14 @@ method list_summary(
   # Sort each of the lists in each group depending on orderby field
   # XXX: Should sort the group by number where applicable
   # XXX: Sorting doesn't actually work at the moment
-  return 
+  return  (
     [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ],
     [ map {{
         groupname => $_,
         list      => $self->sortsummary( orderby=>$orderby, list=>$list{$_} ),
       }}
-    sort keys %list ];
+    sort keys %list ]
+  );
 }
 
 # Sort a list first by groupby and then by sortby
@@ -267,14 +267,25 @@ method item_read( Str :$item_id ) {
   return $matches->next;
 }
 
-method item_save( Str :$item_id, HashRef :$item ) {
-  my $objid = MongoDB::OID->new($item_id);
-  $self->items->update();
+#method item_write( Str :$item_id, HashRef :$item ) {
+#  my $objid = MongoDB::OID->new($item_id);
+#  $self->items->update();
+#}
+
+method item_update( Str :$item_id, HashRef :$updates ){
+  my $objid = $self->oid($item_id);
+  while ( my ($key,$value) = each %$updates ) {
+    warn "*** item_update $objid set $key = $value ***\n";
+    my $matches = $self->items->update(
+      { _id => $objid }, { '$set', { $key => $value } }
+    )
+  }
 }
-method item_delete( Str :$item_id ) {
-}
-method item_undelete( Str :$item_id ) {
-}
+
+#method item_delete( Str :$item_id ) {
+#}
+#method item_undelete( Str :$item_id ) {
+#}
 
 
 ########################################################################
@@ -325,6 +336,11 @@ method field_get( HashRef :$item, Str :$fieldname ) {
     value     => $item->{$fieldname},
     %{ $self->field_attributes( field => $fieldname ) },
   };
+}
+
+method field_getvalue ( Str :$item_id, Str :$fieldname ) {
+  my $item = $self->item_read( item_id => $item_id );
+  return $item->{$fieldname};
 }
 
 
