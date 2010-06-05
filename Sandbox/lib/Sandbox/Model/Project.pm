@@ -120,6 +120,15 @@ method field_canedit ( Str :$field ) {
   return undef;
 }
 
+# Get all attributes for a named field
+#
+method field_attributes ( Str :$field ) {
+  for my $f ( $self->fieldlist ) {
+    return $f if $f->{field} eq $field;
+  }
+  return {};
+}
+
 
 # All field names of a list
 #
@@ -182,7 +191,14 @@ method list_summary(
     my $groupname = $groupby  ? $r->{$groupby} : $r->{Engineer};
     $groupname ||= 'UNKNOWN';
     push @{ $list{$groupname} }, [
-      $self->item_selectfields( item=>$r, fieldlist=>\@fieldlist),
+      ( 
+         map {
+           warn "Getting apttributes for fieldname $_\n";
+           $self->field_get( item => $r, fieldname => $_ )
+         }
+         @fieldlist
+         #$self->item_selectfields( item=>$r, fieldlist=>\@fieldlist),
+      ),
       $r->{_deleted},
       $r->{_id}{value},
       ( $groupby  ? $r->{$groupby} : undef ),
@@ -287,14 +303,28 @@ method item_expanded( Str :$item_id ) {
   my @fieldlist = $self->expandedfields();
   my @list;
   for my $fieldname ( @fieldlist ) {
-    push @list, {
-      fieldname => $fieldname,
-      fieldtype => $self->fieldtype( field => $fieldname),
-      value     => $item->{$fieldname},
-      canedit   => $self->field_canedit( field => $fieldname),
-    }
+    #push @list, {
+    #  fieldname => $fieldname,
+    #  fieldtype => $self->fieldtype( field => $fieldname),
+    #  value     => $item->{$fieldname},
+    #  canedit   => $self->field_canedit( field => $fieldname),
+    #}
+    push @list, $self->field_get( item => $item, fieldname => $fieldname );
   }
   return \@list;
+}
+
+
+########################################################################
+### Operations on a single field
+########################################################################
+
+method field_get( HashRef :$item, Str :$fieldname ) {
+  return {
+    fieldname => $fieldname,
+    value     => $item->{$fieldname},
+    %{ $self->field_attributes( field => $fieldname ) },
+  };
 }
 
 
