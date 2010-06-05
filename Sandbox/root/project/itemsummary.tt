@@ -46,6 +46,7 @@
        'update' => rowid,
        'url' => uri,
        'evalScripts' => 'true',
+       'loaded' => "new Effect.toggle('" _ rowid _ "', 'blind', {duration:0.2} )"
      } )
   %]
   </td>
@@ -56,4 +57,5 @@
 </tr>
 
 [%# Expanded line %]
+[%# style="display:none" %]
 <tr><td colspan="[% row.size %]" class="expanded"><span id="[% rowid %]" style="display:none"></span></td></tr>
