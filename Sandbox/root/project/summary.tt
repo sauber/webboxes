@@ -1,0 +1,22 @@
+Summary Template
+<link rel="stylesheet" href="/static/css/listofthings.css" type="text/css" />
+[% c.prototype.define_javascript_functions %]
+
+<h2>[% title %]</h2>
+
+<table class="summary">
+
+<tr>
+[% FOREACH header in fieldlist %]
+  <th> class="summary">[% $header %]</th>
+[% END %]
+</tr>
+
+[% FOREACH group IN list %]
+  <tr><th colspan="[% fieldlist.size %]">[% group.groupname %]</th></tr>
+  [% FOREACH row = group.list %]
+    [% INCLUDE itemsummary.tt %]
+  [% END %]
+[% END %]
+
+</table>
