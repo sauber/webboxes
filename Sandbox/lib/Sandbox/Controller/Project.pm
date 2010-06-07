@@ -20,11 +20,84 @@ Catalyst Controller.
 
 =cut
 
-sub index :Path :Args(0) {
-  my ( $self, $c ) = @_;
+#sub index :Path :Args(0) {
+sub index :Path {
+  my ( $self, $c, %param ) = @_;
 
   #$c->response->body('Matched Sandbox::Controller::Project in Project.');
-  $c->forward('list');
+  use Data::Dumper;
+  warn "index args:" . Dumper \%param;
+  #$c->forward('list');
+
+  $c->model('Project')->listname( $param{listname} ) if $param{listname};
+
+  if ( $param{action} eq 'summary' ) {
+    my ($fieldlist, $data ) = $c->model('Project')->list_summary();
+    $c->stash(
+      template  => 'project/summary.tt',
+      title     => $param{listname},
+      listname  => $param{listname},
+      list      => $data,
+      fieldlist => $fieldlist,
+    );
+  } elsif ( $param{action} eq 'expanded' ) {
+    my ($fieldlist, $data ) = $c->model('Project')->list_summary();
+    $c->stash(
+      template  => 'project/summary.tt',
+      title     => $param{listname},
+      listname  => $param{listname},
+      list      => $data,
+      fieldlist => $fieldlist,
+      expanded  => 1,
+    );
+  } elsif ( $param{action} eq 'edititem' ) {
+    my $record = $c->model('Project')->item_expanded( item_id => $param{item});
+    $c->stash(
+      template  => 'project/edititem.tt',
+      record    => $record,
+    );
+  } elsif ( $param{action} eq 'viewitem' ) {
+    my $record = $c->model('Project')->item_expanded( item_id => $param{item});
+    $c->stash(
+      template  => 'project/edititem.tt',
+      record    => $record,
+      viewonly=>1,
+    );
+  } elsif ( $param{action} eq 'editconf' ) {
+  $c->stash(
+      template  => 'project/update.tt',
+    projname => $param{listname},
+    fielddef => $c->model('Project')->field_definition(),
+  );
+  } elsif ( $param{action} eq 'ajaxexpand' ) {
+  my $record = $c->model('Project')->item_expanded( item_id => $param{item});
+  $c->stash(
+    template   => 'project/itemexpand.tt',
+    record     => $record,
+    no_wrapper => 1,
+  );
+  } elsif ( $param{action} eq 'ajaxdata' ) {
+  my $value;
+  if ( $value = $c->request->params->{value} ) {
+    #$c->log->debug("*** ajax save field $field value $value ***");
+    $c->model('Project')->item_update(
+      item_id => $param{item},
+      updates => { $param{field} => $value },
+    );
+  } else {
+    $value =
+      $c->model('Project')->field_getvalue( item_id => $param{item}, fieldname => $param{field} );
+    #$c->log->debug("*** ajax load field $field value $value ***");
+  }
+  $c->response->body( $value );
+  } else {
+    #$c->response->body("<p>Dhandler exception:</p><pre>" . Dumper(\%params) . "</pre>" )
+  $c->stash(
+    collections => [ $c->model('Project')->project_collections ],
+    template => 'project/list.tt',
+  );
+  }
+  $c->detach( $c->view("TT") );
 }
 
 sub base :Chained('/') :PathPart('project') :CaptureArgs(0) {
@@ -118,9 +191,9 @@ sub list :Local {
   my ($self, $c) = @_;
 
   $c->stash(
-    collections => [ $c->model('Project')->project_collections ]
+    collections => [ $c->model('Project')->project_collections ],
+    template => 'project/list.tt',
   );
-  $c->stash( template => 'project/list.tt' );
   $c->detach( $c->view("TT") );
 }
 
@@ -167,7 +240,6 @@ sub field :Chained('ajax') :PathPart('field') :Args(2) {
   $c->response->body( $value );
   
 }
-
 
 =head1 AUTHOR
 
