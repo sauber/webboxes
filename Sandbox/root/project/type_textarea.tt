@@ -1,19 +1,20 @@
 [% BLOCK show %]
-[% c.markdown.markdown(item.value) %]
+[% c.markdown.markdown(field.value) %]
 [% END %]
 
 [% BLOCK edit %]
-<input name="[% item.fieldname %]" size="[% item.fieldsize %]" value="[% item.value | html %]" class="edititem">
-<textarea name="[% item.fieldname %]" rows="[% rows %]" cols="[% cols %]" style="edititem">[% value | html %]</textarea>
+[% SET rows = field.size.split('x').0 %]
+[% SET cols = field.size.split('x').1 %]
+<textarea name="[% field.fieldname %]" rows="[% rows %]" cols="[% cols %]" style="edititem">[% value | html %]</textarea>
 [% END %]
 
 [% BLOCK ajax %]
-  [% idtag = id _ ' ' _ item.fieldname %]
-  [% urlpart = [ 'project' 'ajax' listname 'field' id item.fieldname ] %]
+  [% idtag = id _ ' ' _ field.fieldname %]
+  [% urlpart = [ 'project' 'ajax' listname 'field' id field.fieldname ] %]
   [% url = base _ urlpart.join('/') %]
   <span id="[% idtag %]" class="summary">
-  [% IF item.value %]
-    [% item.value %]
+  [% IF field.value %]
+    [% field.value %]
   [% ELSE %]
     <em>edit</em>
   [% END %]
@@ -27,6 +28,7 @@
   %]
 [% END %]
 
+Textarea:
 [% IF ( item.editsummary and context == 'summary' ) or ( item.editexpanded and conext == 'expanded' ) %]
   [% INCLUDE ajax %]
   [% RETURN %]

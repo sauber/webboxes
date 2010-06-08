@@ -10,14 +10,11 @@ BEGIN { extends 'Catalyst::Model::MongoDB' };
 ### Database Connection
 ########################################################################
 
-has 'listname' => ( isa => 'Str', is => 'rw' );
+has 'listid' => ( isa => 'Str', is => 'rw', );
 
-after 'listname' => sub {
+before 'listid' => sub {
   my ($self) = @_;
-  $self->clear_dbname;
-  $self->clear_schema;
-  $self->clear_items;
-  $self->clear_dbh;
+  $self->reset();
 };
 
 has 'dbname'   => (
@@ -28,7 +25,7 @@ has 'dbname'   => (
 
 sub _build_dbname {
   my ($self) = @_;
-  return '_LOT_' . $self->listname;
+  return '_LOT_' . $self->listid;
 }
 
 has 'items' => (
@@ -53,12 +50,27 @@ sub _build_schema {
   $self->dbh()->get_collection('config');
 }
 
-method project_collections {
+# If listid changes, the unset all db values
+method reset {
+  $self->clear_dbname;
+  $self->clear_schema;
+  $self->clear_items;
+  $self->clear_dbh;
+}
+
+# Get a list of all ListOfThings tables
+#
+method alllists {
   my @list;
   for my $dbn ( grep { s/^_LOT_// } $self->dbnames() ) {
-    $self->listname( $dbn );
+    next unless $dbn;
+    $self->listid( $dbn );
+    #warn "project_collections: dbn=$dbn, self=$self\n";
     # The shortname and the long name
-    push @list, { id => $dbn, title => $self->schema->query->next->{name} };
+    push @list, {
+      listid   => $dbn,
+      listname => $self->schema->query->next->{name},
+    };
   }
   #use Data::Dumper;
   #warn Dumper \@list;
@@ -74,6 +86,12 @@ method fieldlist {
   my $config = $self->schema->query->next;
   return () unless ref $config->{fieldlist};
   return @{ $config->{fieldlist} };
+} 
+
+method listname {
+  my $config = $self->schema->query->next;
+  return unless ref $config->{fieldlist};
+  return $config->{name};
 }
 
 # A YAML formatter string of field definitions
@@ -153,10 +171,27 @@ method saveconfig( Str :$fielddef, Str :$name ) {
 
 # Delete a Project Collection
 #
-method collection_delete ( Str :$listname ) {
+method collection_delete ( Str :$listid ) {
   $self->dbh->drop;
 }
 
+method config_example {
+  return Dump [
+    {
+       fieldname => 'Title',
+    },
+    {
+       fieldname => 'Description',
+       fieldtype => 'textarea',
+       size => '40x2',
+    },
+    {
+       fieldname => 'Category',
+       fieldtype => 'select',
+       choices => [ qw( Low Medium High ) ],
+    },
+  ];
+}
 
 
 ########################################################################
@@ -260,20 +295,20 @@ method sortsummary( Str :$orderby?, ArrayRef :$list )  {
 
 # Read a single item
 #
-method item_read( Str :$item_id ) {
-  #my $objid = MongoDB::OID->new($item_id);
-  my $objid = $self->oid($item_id);
+method item_read( Str :$itemid ) {
+  #my $objid = MongoDB::OID->new($itemid);
+  my $objid = $self->oid($itemid);
   my $matches = $self->items->query({ _id => $objid });
   return $matches->next;
 }
 
-#method item_write( Str :$item_id, HashRef :$item ) {
-#  my $objid = MongoDB::OID->new($item_id);
+#method item_write( Str :$itemid, HashRef :$item ) {
+#  my $objid = MongoDB::OID->new($itemid);
 #  $self->items->update();
 #}
 
-method item_update( Str :$item_id, HashRef :$updates ){
-  my $objid = $self->oid($item_id);
+method item_update( Str :$itemid, HashRef :$updates ){
+  my $objid = $self->oid($itemid);
   while ( my ($key,$value) = each %$updates ) {
     warn "*** item_update $objid set $key = $value ***\n";
     my $matches = $self->items->update(
@@ -282,14 +317,14 @@ method item_update( Str :$item_id, HashRef :$updates ){
   }
 }
 
-#method item_delete( Str :$item_id ) {
+#method item_delete( Str :$itemid ) {
 #}
-#method item_undelete( Str :$item_id ) {
+#method item_undelete( Str :$itemid ) {
 #}
 
 
 ########################################################################
-### Operations on a single read Item
+### Operations on a single Item
 ########################################################################
 
 # Check if a keyword appears in any of the fields of an item
@@ -309,8 +344,8 @@ method item_selectfields( HashRef :$item, ArrayRef :$fieldlist ) {
   return map $item->{$_}, @$fieldlist;
 }
 
-method item_expanded( Str :$item_id ) {
-  my $item = $self->item_read( item_id => $item_id );
+method item_expanded( Str :$itemid ) {
+  my $item = $self->item_read( itemid => $itemid );
   my @fieldlist = $self->expandedfields();
   my @list;
   for my $fieldname ( @fieldlist ) {
@@ -325,21 +360,31 @@ method item_expanded( Str :$item_id ) {
   return \@list;
 }
 
+# Get all values and all field attributes for a record
+#
+method item_get ( Str :$itemid ) {
+  $self->item_read( itemid => $itemid );
+}
+
 
 ########################################################################
 ### Operations on a single field
 ########################################################################
 
-method field_get( HashRef :$item, Str :$fieldname ) {
-  return {
-    fieldname => $fieldname,
-    value     => $item->{$fieldname},
-    %{ $self->field_attributes( field => $fieldname ) },
-  };
+method field_get( Str :$fieldname ) {
+  #return {
+  #  fieldname => $fieldname,
+  #  value     => $item->{$fieldname},
+  #  %{ $self->field_attributes( field => $fieldname ) },
+  #};
+  for my $f ( $self->{fieldlist} ) {
+    return $f if $f->{fieldname} eq $fieldname;
+  }
+  return undef;
 }
 
-method field_getvalue ( Str :$item_id, Str :$fieldname ) {
-  my $item = $self->item_read( item_id => $item_id );
+method field_getvalue ( Str :$itemid, Str :$fieldname ) {
+  my $item = $self->item_read( itemid => $itemid );
   return $item->{$fieldname};
 }
 
@@ -388,8 +433,8 @@ sub cycle_sortcode { shift || 5 }
 
 # Add an audit log item to an item
 #
-method logging( Str :$message, Str :$item_id ) {
-  my $objid = MongoDB::OID->new($item_id);
+method logging( Str :$message, Str :$itemid ) {
+  my $objid = MongoDB::OID->new($itemid);
 
   my $logentry = {
     time    => time(),

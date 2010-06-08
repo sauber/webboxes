@@ -24,3 +24,6 @@ Summary Template
 [% END %]
 
 </table>
+
+[% INCLUDE 'linkmake' action='edititem' title='Add Item' %] |
+<a href="[% base %]">Other Lists</a>

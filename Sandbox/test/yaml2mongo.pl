@@ -10,11 +10,16 @@ use MongoDB;
 our $yamlfile = 'list-Unix%20Projects.yaml';
 our $data = LoadFile $yamlfile;
 
+# Rename field to fieldname
+$_->{fieldname}=$_->{field}, delete $_->{field}
+  for @{ $data->{config}{fieldlist} };
+
 # Dump data found in YAML
-#print Dumper $data->{config};
+print Dumper $data->{config};
 #print Dumper $data->{data};
 #print Dumper $data->{log};
-#exit;
+exit;
+
 
 # Open connection to Mongo DB
 our $conn = MongoDB::Connection->new;

@@ -5,15 +5,15 @@
 <h2>Powered By ListOfThings</h2>
 <h3>Choose Existing Project Collection</h3>
 <ul>
-[% FOREACH coll = collections %]
+[% FOREACH list IN lists %]
 <li>
-  <a href="[% c.uri_for('read',   coll.id) %]">show</a>
-  <a href="[% c.uri_for('update', coll.id) %]">edit</a>
-  <a href="[% c.uri_for('delete', coll.id) %]">delete</a>
-  - [% coll.title | html %]
+  <a href="[% c.uri_for('action', 'summary', 'listid',   list.listid) %]">show</a>
+  <a href="[% c.uri_for('action', 'editconf', 'listid', list.listid) %]">edit</a>
+  <a href="[% c.uri_for('action', 'delete', 'listid', list.listid) %]">delete</a>
+  - [% list.listname | html %]
 </li>
 [% END %]
 </ul>
-<a href="[% c.uri_for(c.controller.action_for('create')) %]">Create New Project Collection</a>
+<a href="[% c.uri_for('action','create') %]">Create New Project Collection</a>
 </body>
 </html>

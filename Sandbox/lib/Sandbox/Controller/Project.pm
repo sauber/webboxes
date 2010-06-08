@@ -4,6 +4,31 @@ use namespace::autoclean;
 
 BEGIN {extends 'Catalyst::Controller'; }
 
+# = Naming =
+# == Data structure ==
+# Number of lists, identified by listid ( cleaned listid )
+#     listid =>
+#     listname =>
+#     config =>
+#     fieldlist => [ field ]
+#     items =>
+# Number of items, identified by itemid ( mongo oid of record )
+#     itemid =>
+#     fieldname => value
+#     fieldname => value
+#     ...
+# Fieldlist has number of fields, identified by fieldname (from config)
+#     fieldname =>
+#     type =>
+#     size =>
+#     showsummary =>
+# == URL parts ==
+#   control:    action viewonly append
+#   dataitems:  listid itemid fieldname
+#   filter:     groupby orderby filterfield filtervalue searchq
+#   fieldvalue: value
+
+
 =head1 NAME
 
 Sandbox::Controller::Project - Catalyst Controller
@@ -20,226 +45,412 @@ Catalyst Controller.
 
 =cut
 
-#sub index :Path :Args(0) {
 sub index :Path {
   my ( $self, $c, %param ) = @_;
 
-  #$c->response->body('Matched Sandbox::Controller::Project in Project.');
+  my $action = $param{action} || 'none';
+
+  $self->linkparse($c,\%param); # Extract valid data from URL
+  $c->log->debug("*** index: linkparse done ***");
+  $self->loaddata($c,\%param);  # Load relevant data
+  $c->log->debug("*** index: loaddata done ***");
+
+  $c->log->debug("*** index: trying field actions ***");
+  if ( $c->stash->{field} ) {
+    $self->fieldaction($c,\%param);
+    $c->detach( $c->view("TT") );
+  }
+
+  $c->log->debug("*** index: trying item actions ***");
+  if ( $c->stash->{item} ) {
+    $self->itemaction($c,\%param);
+    $c->detach( $c->view("TT") );
+  }
+
+  $c->log->debug("*** index: trying list actions ***");
+  if ( $c->stash->{list} ) {
+    $self->listaction($c,\%param);
+    $c->detach( $c->view("TT") );
+  }
+
+  $c->log->debug("*** index: trying global actions ***");
+  $self->globalactions($c,\%param);
+  $c->detach( $c->view("TT") );
+}
+
+# Parse URL link
+#
+sub linkparse {
+  my($self,$c,$param) = @_;
+
   use Data::Dumper;
-  warn "index args:" . Dumper \%param;
-  #$c->forward('list');
-
-  $c->model('Project')->listname( $param{listname} ) if $param{listname};
-
-  if ( $param{action} eq 'summary' ) {
-    my ($fieldlist, $data ) = $c->model('Project')->list_summary();
-    $c->stash(
-      template  => 'project/summary.tt',
-      title     => $param{listname},
-      listname  => $param{listname},
-      list      => $data,
-      fieldlist => $fieldlist,
-    );
-  } elsif ( $param{action} eq 'expanded' ) {
-    my ($fieldlist, $data ) = $c->model('Project')->list_summary();
-    $c->stash(
-      template  => 'project/summary.tt',
-      title     => $param{listname},
-      listname  => $param{listname},
-      list      => $data,
-      fieldlist => $fieldlist,
-      expanded  => 1,
-    );
-  } elsif ( $param{action} eq 'edititem' ) {
-    my $record = $c->model('Project')->item_expanded( item_id => $param{item});
-    $c->stash(
-      template  => 'project/edititem.tt',
-      record    => $record,
-    );
-  } elsif ( $param{action} eq 'viewitem' ) {
-    my $record = $c->model('Project')->item_expanded( item_id => $param{item});
-    $c->stash(
-      template  => 'project/edititem.tt',
-      record    => $record,
-      viewonly=>1,
-    );
-  } elsif ( $param{action} eq 'editconf' ) {
+  warn "linkparse index args:" . Dumper $param;
+  # Keep all the parameters in the url
   $c->stash(
+    map { $param->{$_} ? ( $_ => $param->{$_} ) : () }
+    qw(action viewonly append listid itemid fieldname groupby orderby filterfield filtervalue searchq value)
+  );
+}
+
+# Load list, item or field data
+#
+sub loaddata {
+  my($self, $c, $param) = @_;
+
+  # Load list information
+  my $listid;
+  if ( $param->{listid} ) {
+    my $listid = $param->{listid};
+    $c->model('Project')->listid( $listid );
+    $c->stash(
+      listid    => $listid,
+      fieldlist => [ model('Project')->fieldlist ],
+      listname  => [ model('Project')->listname  ],
+    );
+  } else {
+    $c->model('Project')->reset();
+  }
+
+  # Load item values
+  my $itemid;
+  if ( $param->{itemid} ) {
+    $itemid = $param->{itemid};
+    $c->stash(
+      itemid => $itemid,
+      item => $c->model('Project')->item_get( itemid => $itemid ),
+    );
+  }
+
+  # Load field information
+  my $fieldname;
+  if ( $param->{fieldname} ) {
+    $fieldname = $param->{fieldname};
+    $c->stash(
+      fieldname => $fieldname,
+      field => $c->model('Project')->field_get( fieldname => $fieldname ),
+    );
+  }
+
+  $c->log->debug("*** loaddata: listid = $listid ***");
+  $c->log->debug("*** lodddata: itemid = $itemid ***");
+  $c->log->debug("*** lodddata: listid = $listid ***");
+}
+
+
+# Globalactions
+#
+sub globalactions {
+  my ( $self, $c, $param ) = @_;
+
+  $c->log->debug("*** globalactions: start ***");
+
+  if ( $param->{action} eq 'create' ) {
+    $c->log->debug("*** globalactions: calling create ***");
+    $c->stash(
       template  => 'project/update.tt',
-    projname => $param{listname},
-    fielddef => $c->model('Project')->field_definition(),
-  );
-  } elsif ( $param{action} eq 'ajaxexpand' ) {
-  my $record = $c->model('Project')->item_expanded( item_id => $param{item});
-  $c->stash(
-    template   => 'project/itemexpand.tt',
-    record     => $record,
-    no_wrapper => 1,
-  );
-  } elsif ( $param{action} eq 'ajaxdata' ) {
-  my $value;
-  if ( $value = $c->request->params->{value} ) {
-    #$c->log->debug("*** ajax save field $field value $value ***");
-    $c->model('Project')->item_update(
-      item_id => $param{item},
-      updates => { $param{field} => $value },
+      fielddef => $c->model('Project')->config_example(),
     );
   } else {
-    $value =
-      $c->model('Project')->field_getvalue( item_id => $param{item}, fieldname => $param{field} );
-    #$c->log->debug("*** ajax load field $field value $value ***");
-  }
-  $c->response->body( $value );
-  } else {
-    #$c->response->body("<p>Dhandler exception:</p><pre>" . Dumper(\%params) . "</pre>" )
-  $c->stash(
-    collections => [ $c->model('Project')->project_collections ],
-    template => 'project/list.tt',
-  );
-  }
-  $c->detach( $c->view("TT") );
-}
-
-sub base :Chained('/') :PathPart('project') :CaptureArgs(0) {
-  my ($self, $c) = @_;
-  # Print a message to the debug log
-  $c->log->debug("*** INSIDE BASE METHOD ***");
-}
-
-sub create :Chained('base') :PathPart('create') :Args(0) {
-  my ($self, $c) = @_;
-
-  $c->stash(
-    projname => '<New Project>',
-    template => 'project/update.tt',
-  );
-  $c->detach( $c->view("TT") );
-}
-
-sub read :Chained('base') :PathPart('read') :Args(1) {
-  my ($self, $c, $listname) = @_;
-  $c->model('Project')->listname( $listname );
-  my ($fieldlist, $data ) = $c->model('Project')->list_summary();
-  $c->stash(
-    template  => 'project/summary.tt',
-    title     => $listname,
-    listname  => $listname,
-    list      => $data,
-    fieldlist => $fieldlist,
-  );
-  $c->detach( $c->view("TT") );
-}
-
-sub update :Chained('base') :PathPart('update') :Args(1) {
-  my ($self, $c, $listname) = @_;
-
-  $c->log->debug("*** read $listname ***");
-  $c->model('Project')->listname( $listname );
-  $c->stash(
-    projname => $listname,
-    fielddef => $c->model('Project')->field_definition(),
-  );
-  $c->detach( $c->view("TT") );
-}
-
-sub update_do :Chained('base') :PathPart('update_do') :Args(0) {
-  my ($self, $c, $listname) = @_;
-
-  my $name     = $c->request->params->{projname};
-  my $fielddef = $c->request->params->{fielddef};
-
-  unless ( $listname ) {
-    $c->log->debug("*** create new database $listname ***");
-    ( $listname = $name ) =~ s/\W+//g;
-  }
-  $c->model('Project')->listname( $listname );
-  my $saved = 
-    $c->model('Project')->saveconfig( fielddef => $fielddef, name => $name );
-  if ( $saved ) {
-    $c->stash->{status_msg} = "Project Definition Saved.";
-    $c->log->debug("*** $name saved ***");
-    #$c->forward('list');
+    $c->log->debug("*** globalactions: calling list ***");
     $c->stash(
-      template => 'project/update.tt',
-      projname => $name,
-      fielddef => $fielddef,
+      lists => [ $c->model('Project')->alllists ],
+      template => 'project/list.tt',
     );
-    $c->response->redirect($c->uri_for($self->action_for('list')));
-  } else {
-    $c->stash->{status_msg} = "Project Definition Not Saved Due to Errors";
-    $c->log->debug("*** $name not saved ***");
-    $c->stash(
-      template => 'project/update.tt',
-      projname => $name,
-      fielddef => $fielddef,
-    )
-
   }
-  $c->detach( $c->view("TT") );
+  $c->log->debug("*** globalactions: end ***");
 }
 
-sub delete :Chained('base') :PathPart('delete') :Args(1) {
-  my ($self, $c, $listname) = @_;
-
-  $c->model('Project')->listname( $listname );
-  $c->model('Project')->collection_delete();
-  $c->response->redirect($c->uri_for($self->action_for('list')));
+# Various operations on one list
+#
+sub listactions {
+  my ( $self, $c, $param ) = @_;
 }
+
+# Find out what is being request to be done on the field, and then execute it
+#
+sub fieldactions {
+  my ( $self, $c, $param ) = @_;
+
+  my $fieldname = $param->{fieldname};
+  if ( $param->{action} eq 'ajaxdata' ) {
+    my $value;
+    if ( $value = $c->request->params->{value} ) {
+      $c->log->debug("*** fieldactions: ajaxdata save field $fieldname value $value ***");
+      $c->model('Project')->item_update(
+        itemid  => $param->{itemid},
+        updates => { $fieldname => $value },
+      );
+    } else {
+      $value =
+        $c->stash( 'item' )->{ $fieldname };
+      $c->log->debug("*** fieldactions: ajaxdata load field $fieldname value $value ***");
+    }
+    $c->response->body( $value );
+  }
+}
+
+#sub oldindex {
+#  my ( $self, $c, %param ) = @_;
+#  # Display configuration editor to create new configuration
+#  if ( $action eq 'create' ) {
+#    $c->stash(
+#      template  => 'project/update.tt',
+#      projname => '',
+#      fielddef => $c->model('Project')->field_definition(),
+#    );
+#
+#  # Display configuration editor and edit existing configuration
+#  } elsif ( $action eq 'editconf' ) {
+#    $c->stash(
+#      template  => 'project/update.tt',
+#      projname => $listid,
+#      fielddef => $c->model('Project')->field_definition(),
+#    );
+#
+#  # Receive configuration from form and save to database
+#  } elsif ( $action eq 'updateconf' ) {
+#    my $name     = $c->request->params->{projname};
+#    my $fielddef = $c->request->params->{fielddef};
+#  
+#    unless ( $listid ) {
+#      $c->log->debug("*** create new database $listid ***");
+#      ( $listid = $name ) =~ s/\W+//g;
+#    }
+#    $c->model('Project')->listid( $listid );
+#    my $saved = 
+#      $c->model('Project')->saveconfig( fielddef => $fielddef, name => $name );
+#    if ( $saved ) {
+#      $c->stash->{status_msg} = "Project Definition Saved.";
+#      $c->log->debug("*** $name saved ***");
+#      #$c->forward('list');
+#      $c->stash(
+#        template => 'project/update.tt',
+#        projname => $name,
+#        fielddef => $fielddef,
+#      );
+#      $c->response->redirect($c->uri_for($self->action_for('list')));
+#    } else {
+#      $c->stash->{status_msg} = "Project Definition Not Saved Due to Errors";
+#      $c->log->debug("*** $name not saved ***");
+#      $c->stash(
+#        template => 'project/update.tt',
+#        projname => $name,
+#        fielddef => $fielddef,
+#      )
+#  
+#    }
+#  
+#  # Delete a configuration and all data with it
+#  } elsif ( $action eq 'delete' ) {
+#    $c->model('Project')->listid( $listid );
+#    $c->model('Project')->collection_delete();
+#    $c->stash(
+#      template => 'project/list.tt',
+#    )
+#
+#  } elsif ( $action eq 'summary' ) {
+#    my ($fieldlist, $data ) = $c->model('Project')->list_summary();
+#    $c->stash(
+#      template  => 'project/summary.tt',
+#      title     => $listid,
+#      listid  => $listid,
+#      list      => $data,
+#      fieldlist => $fieldlist,
+#    );
+#  } elsif ( $action eq 'expanded' ) {
+#    my ($fieldlist, $data ) = $c->model('Project')->list_summary();
+#    $c->stash(
+#      template  => 'project/summary.tt',
+#      title     => $listid,
+#      listid  => $listid,
+#      list      => $data,
+#      fieldlist => $fieldlist,
+#      expanded  => 1,
+#    );
+#  } elsif ( $action eq 'edititem' ) {
+#    my $record = $c->model('Project')->item_get( itemid => $param{item});
+#    $c->stash(
+#      template  => 'project/edititem.tt',
+#      record    => $record,
+#    );
+#  } elsif ( $action eq 'viewitem' ) {
+#    my $record = $c->model('Project')->item_expanded( itemid => $param{item});
+#    $c->stash(
+#      template  => 'project/edititem.tt',
+#      record    => $record,
+#      viewonly=>1,
+#    );
+# } elsif ( $action eq 'ajaxexpand' ) {
+#  my $record = $c->model('Project')->item_expanded( itemid => $param{item});
+#  $c->stash(
+#    template   => 'project/itemexpand.tt',
+#    record     => $record,
+#    no_wrapper => 1,
+#  );
+#  } elsif ( $action eq 'ajaxdata' ) {
+#  my $value;
+#  if ( $value = $c->request->params->{value} ) {
+#    #$c->log->debug("*** ajax save field $field value $value ***");
+#    $c->model('Project')->item_update(
+#      itemid => $param{item},
+#      updates => { $param{field} => $value },
+#    );
+#  } else {
+#    $value =
+#      $c->model('Project')->field_getvalue( itemid => $param{item}, fieldname => $param{field} );
+#    #$c->log->debug("*** ajax load field $field value $value ***");
+#  }
+#  $c->response->body( $value );
+#  } else {
+#    #$c->response->body("<p>Dhandler exception:</p><pre>" . Dumper(\%params) . "</pre>" )
+#  $c->stash(
+#    collections => [ $c->model('Project')->alllists ],
+#    template => 'project/list.tt',
+#  );
+#  }
+#  $c->detach( $c->view("TT") );
+#}
+
+#sub base :Chained('/') :PathPart('project') :CaptureArgs(0) {
+#  my ($self, $c) = @_;
+#  # Print a message to the debug log
+#  $c->log->debug("*** INSIDE BASE METHOD ***");
+#}
+
+#sub create :Chained('base') :PathPart('create') :Args(0) {
+#  my ($self, $c) = @_;
+#
+#  $c->stash(
+#    projname => '<New Project>',
+#    template => 'project/update.tt',
+#  );
+#  $c->detach( $c->view("TT") );
+#}
+
+#sub read :Chained('base') :PathPart('read') :Args(1) {
+#  my ($self, $c, $listid) = @_;
+#  $c->model('Project')->listid( $listid );
+#  my ($fieldlist, $data ) = $c->model('Project')->list_summary();
+#  $c->stash(
+#    template  => 'project/summary.tt',
+#    title     => $listid,
+#    listid  => $listid,
+#    list      => $data,
+#    fieldlist => $fieldlist,
+#  );
+#  $c->detach( $c->view("TT") );
+#}
+
+#sub update :Chained('base') :PathPart('update') :Args(1) {
+#  my ($self, $c, $listid) = @_;
+#
+#  $c->log->debug("*** read $listid ***");
+#  $c->model('Project')->listid( $listid );
+#  $c->stash(
+#    projname => $listid,
+#    fielddef => $c->model('Project')->field_definition(),
+#  );
+#  $c->detach( $c->view("TT") );
+#}
+
+#sub update_do :Chained('base') :PathPart('update_do') :Args(0) {
+#  my ($self, $c, $listid) = @_;
+#
+#  my $name     = $c->request->params->{projname};
+#  my $fielddef = $c->request->params->{fielddef};
+#
+#  unless ( $listid ) {
+#    $c->log->debug("*** create new database $listid ***");
+#    ( $listid = $name ) =~ s/\W+//g;
+#  }
+#  $c->model('Project')->listid( $listid );
+#  my $saved = 
+#    $c->model('Project')->saveconfig( fielddef => $fielddef, name => $name );
+#  if ( $saved ) {
+#    $c->stash->{status_msg} = "Project Definition Saved.";
+#    $c->log->debug("*** $name saved ***");
+#    #$c->forward('list');
+#    $c->stash(
+#      template => 'project/update.tt',
+#      projname => $name,
+#      fielddef => $fielddef,
+#    );
+#    $c->response->redirect($c->uri_for($self->action_for('list')));
+#  } else {
+#    $c->stash->{status_msg} = "Project Definition Not Saved Due to Errors";
+#    $c->log->debug("*** $name not saved ***");
+#    $c->stash(
+#      template => 'project/update.tt',
+#      projname => $name,
+#      fielddef => $fielddef,
+#    )
+#
+#  }
+#  $c->detach( $c->view("TT") );
+#}
+
+#sub delete :Chained('base') :PathPart('delete') :Args(1) {
+#  my ($self, $c, $listid) = @_;
+#
+#  $c->model('Project')->listid( $listid );
+#  $c->model('Project')->collection_delete();
+#  $c->response->redirect($c->uri_for($self->action_for('list')));
+#}
 
 # List existing collections
-sub list :Local {
-  my ($self, $c) = @_;
-
-  $c->stash(
-    collections => [ $c->model('Project')->project_collections ],
-    template => 'project/list.tt',
-  );
-  $c->detach( $c->view("TT") );
-}
+#sub list :Local {
+#  my ($self, $c) = @_;
+#
+#  $c->stash(
+#    collections => [ $c->model('Project')->project_collections ],
+#    template => 'project/list.tt',
+#  );
+#  $c->detach( $c->view("TT") );
+#}
 
 # Handle ajax calls
-sub ajax :Chained('base') :PathPart('ajax') :CaptureArgs(1) {
-  my($self, $c, $listname) = @_;
+#sub ajax :Chained('base') :PathPart('ajax') :CaptureArgs(1) {
+#  my($self, $c, $listid) = @_;
+#
+#  $c->model('Project')->listid( $listid );
+#}
 
-  $c->model('Project')->listname( $listname );
-}
-
-sub expand :Chained('ajax') :PathPart('expand') :Args(1) {
-  my($self, $c, $item) = @_;
-  my $record = $c->model('Project')->item_expanded( item_id => $item);
-  $c->stash(
-    template   => 'project/itemexpand.tt',
-    record     => $record,
-    no_wrapper => 1,
-  );
-  $c->detach( $c->view("TT") );
-}
+#sub expand :Chained('ajax') :PathPart('expand') :Args(1) {
+#  my($self, $c, $item) = @_;
+#  my $record = $c->model('Project')->item_expanded( itemid => $item);
+#  $c->stash(
+#    template   => 'project/itemexpand.tt',
+#    record     => $record,
+#    no_wrapper => 1,
+#  );
+#  $c->detach( $c->view("TT") );
+#}
 
 #sub get :Chained('ajax') :PathPart('get') :Args(2) {
 #  my($self, $c, $item, $field) = @_;
 #  $c->response->body(
-#    $c->model('Project')->field_getvalue( item_id => $item, fieldname => $field )
+#    $c->model('Project')->field_getvalue( itemid => $item, fieldname => $field )
 #  );
 #}
 
-sub field :Chained('ajax') :PathPart('field') :Args(2) {
-  my($self, $c, $item, $field) = @_;
-
-  my $value;
-  if ( $value = $c->request->params->{value} ) {
-    #$c->log->debug("*** ajax save field $field value $value ***");
-    $c->model('Project')->item_update(
-      item_id => $item,
-      updates => { $field => $value },
-    );
-  } else {
-    $value =
-      $c->model('Project')->field_getvalue( item_id => $item, fieldname => $field );
-    #$c->log->debug("*** ajax load field $field value $value ***");
-  }
-  $c->response->body( $value );
-  
-}
+#sub field :Chained('ajax') :PathPart('field') :Args(2) {
+#  my($self, $c, $item, $field) = @_;
+#
+#  my $value;
+#  if ( $value = $c->request->params->{value} ) {
+#    #$c->log->debug("*** ajax save field $field value $value ***");
+#    $c->model('Project')->item_update(
+#      itemid => $item,
+#      updates => { $field => $value },
+#    );
+#  } else {
+#    $value =
+#      $c->model('Project')->field_getvalue( itemid => $item, fieldname => $field );
+#    #$c->log->debug("*** ajax load field $field value $value ***");
+#  }
+#  $c->response->body( $value );
+#  
+#}
 
 =head1 AUTHOR
 

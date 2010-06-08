@@ -1,0 +1,11 @@
+[% SWITCH field.type  %]
+[%   CASE 'select' %]
+  <td class="summary">[% INCLUDE project/type_select.tt %]</td>
+[%   CASE 'textarea' %]
+  <td class="summary">[% INCLUDE project/type_textarea.tt %]</td>
+[%   CASE 'journal' %]
+  <td class="summary">[% INCLUDE project/type_journal.tt %]</td>
+[%   CASE %]
+  <td class="summary">[% INCLUDE project/type_text.tt %]</td>
+[% END %]
+

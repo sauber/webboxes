@@ -1,10 +1,8 @@
-<html>
-<head><title>Existing Project Collections</title></head>
-<body>
 <h1>[% projname %]</h1>
 <p>Edit Project Collection Definition</p>
 
-<form method=post action="[% c.uri_for(c.controller.action_for('update_do')) %]">
+[% SET ln = [ 'listname', projname ] IF projname %]
+<form method=post action="[% c.uri_for('action','updateconf', ln.0, ln.1 ) %]">
 <table halign=left>
 <tr valign=top>
   <th>Name:</th>
@@ -44,5 +42,3 @@ Fieldlist Attributes:
 [% END %]
 </ul>
 <a href="[% c.uri_for(c.controller.action_for('create')) %]">Create New Project Collection</a>
-</body>
-</html>
