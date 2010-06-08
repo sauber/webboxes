@@ -15,10 +15,10 @@ $_->{fieldname}=$_->{field}, delete $_->{field}
   for @{ $data->{config}{fieldlist} };
 
 # Dump data found in YAML
-print Dumper $data->{config};
+#print Dumper $data->{config};
 #print Dumper $data->{data};
 #print Dumper $data->{log};
-exit;
+#exit;
 
 
 # Open connection to Mongo DB

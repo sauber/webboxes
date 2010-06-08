@@ -104,7 +104,7 @@ method field_definition {
 #
 method summaryfields {
   return
-    map $_->{field},
+    #map $_->{field},
     grep { $_->{showsummary} or $_->{editsummary} }
     $self->fieldlist;
 }
@@ -113,7 +113,7 @@ method summaryfields {
 #
 method expandedfields {
   return
-    map $_->{field},
+    #map $_->{field},
     grep { $_->{showexpanded} or $_->{editexpanded} }
     $self->fieldlist;
 }
@@ -140,9 +140,9 @@ method field_canedit ( Str :$field ) {
 
 # Get all attributes for a named field
 #
-method field_attributes ( Str :$field ) {
+method field_attributes ( Str :$fieldname ) {
   for my $f ( $self->fieldlist ) {
-    return $f if $f->{field} eq $field;
+    return $f if $f->{fieldname} eq $fieldname;
   }
   return {};
 }
@@ -155,17 +155,17 @@ method allfields {
 
 # Put in new definition, or update existing
 #
-method saveconfig( Str :$fielddef, Str :$name ) {
+method saveconfig( Str :$fieldlist, Str :$listname ) {
   # Parse the YAML formatted string
-  my $fieldlist = Load $fielddef;
-  return undef unless length $fieldlist;
+  my $fieldref = Load $fieldlist;
+  return undef unless ref $fieldref;
 
   # Delete old config (if any)
   $self->schema->drop;
   # Insert new config
   $self->schema->insert({
-    name => $name,
-    fieldlist => [ @$fieldlist ],
+    name => $listname,
+    fieldlist => [ @$fieldref ],
   });
 }
 
@@ -209,7 +209,7 @@ method list_summary(
 ) {
   # Get a list of summary fields from config
   my @fieldlist = $self->summaryfields();
-  my %attr = map { $_ => $self->field_attributes( field => $_) } @fieldlist;
+  #my %attr = map { $_ => $self->field_attributes( fieldname => $_) } @fieldlist;
   my %list;
 
   # Read all summary fields from all items
@@ -224,22 +224,27 @@ method list_summary(
 
     my $groupname = $groupby  ? $r->{$groupby} : $r->{Engineer};
     $groupname ||= 'UNKNOWN';
-    push @{ $list{$groupname} }, [
-      ( 
-         map {{
-           value => $r->{$_},
-           fieldname => $_,
-           %{ $attr{$_} },
-         }}
-         @fieldlist
-      ),
-      $r->{_deleted},
-      $r->{_id}{value},
-      ( $groupby  ? $r->{$groupby} : undef ),
-      ( $orderby  ? $r->{$orderby} : undef ),
-      ( $filterby ? $r->{filterby} : undef ),
-
-    ];
+    #push @{ $list{$groupname} }, [
+    #  ( 
+    #     map {{
+    #       value => $r->{$_},
+    #       fieldname => $_,
+    #       %{ $attr{$_} },
+    #     }}
+    #     @fieldlist
+    #  ),
+    #  $r->{_deleted},
+    #  $r->{_id}{value},
+    #  ( $groupby  ? $r->{$groupby} : undef ),
+    #  ( $orderby  ? $r->{$orderby} : undef ),
+    #  ( $filterby ? $r->{filterby} : undef ),
+    #
+    # ];
+    push @{ $list{$groupname} }, {
+      itemid => $r->{_id}{value},
+      _deleted => $r->{_deleted},
+      map { $_->{fieldname} => $r->{$_->{fieldname}} } @fieldlist
+    };
   }
   #warn "*** There are " . scalar(@list) . " items in summary ***\n";
   $orderby ||= 'Title';
@@ -248,14 +253,15 @@ method list_summary(
   # Sort each of the lists in each group depending on orderby field
   # XXX: Should sort the group by number where applicable
   # XXX: Sorting doesn't actually work at the moment
-  return  (
-    [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ],
-    [ map {{
-        groupname => $_,
-        list      => $self->sortsummary( orderby=>$orderby, list=>$list{$_} ),
-      }}
-    sort keys %list ]
-  );
+  #return  (
+  #  [ @fieldlist, qw(Delete Index Groupby Orderby Filterby) ],
+  #  [ map {{
+  #      groupname => $_,
+  #      items     => $self->sortsummary( orderby=>$orderby, list=>$list{$_} ),
+  #    }}
+  #  sort keys %list ]
+  #);
+  return \%list;
 }
 
 # Sort a list first by groupby and then by sortby

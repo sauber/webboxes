@@ -1,12 +1,12 @@
 [% BLOCK show %]
-[% item.value | html %]
+[% item.$fieldname | html %]
 [% END %]
 
 [% BLOCK edit %]
 <select name="[% item.fieldname %]" class="edititem">
 <option>Please select...</option>
 [% FOREACH option IN item.choices %]
-[% IF option == item.value %]
+[% IF option == item.$fieldname %]
 <option selected>[% option %]</option>
 [% ELSE %]
 <option>[% option %]</option>

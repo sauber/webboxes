@@ -1,17 +1,17 @@
 <h1>[% projname %]</h1>
-<p>Edit Project Collection Definition</p>
+<p>Edit List Definition</p>
 
 [% SET ln = [ 'listname', projname ] IF projname %]
 <form method=post action="[% c.uri_for('action','updateconf', ln.0, ln.1 ) %]">
 <table halign=left>
 <tr valign=top>
   <th>Name:</th>
-  <td><input name=projname value="[% projname %]"></td>
+  <td><input name="listname" value="[% listname or "Example List" %]"></td>
   <td><tt>Name of List</tt></td>
 </tr>
 <tr valign=top>
   <th>Config:</th>
-  <td><textarea name=fielddef cols=50 rows=24>[% fielddef %]</textarea></td>
+  <td><textarea name=fieldlist cols=50 rows=34>[% fieldlist %]</textarea></td>
   <td><pre>
 Fieldlist Attributes:
 
@@ -36,9 +36,4 @@ Fieldlist Attributes:
 </table>
 </form>
 
-<ul>
-[% FOREACH coll = collections %]
-<li><a href="[% c.uri_for(c.controller.action_for('read'), [coll.title]) %]">[% coll.title | html %]</a></li>
-[% END %]
-</ul>
-<a href="[% c.uri_for(c.controller.action_for('create')) %]">Create New Project Collection</a>
+<a href="[% base _ 'project' %]">All Lists</a>

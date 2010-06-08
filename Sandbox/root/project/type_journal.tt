@@ -1,16 +1,16 @@
 [% BLOCK showlast %]
-[% item.value.last %]
+[% item.$fieldname.last | html %]
 [% END %]
 
 [% BLOCK show5last %]
-[% SET to = item.value.max %]
+[% SET to = item.$fieldname.max %]
 [% SET from = to - 4 %]
 [% SET from = 0 IF from < 0 %]
 [% FOREACH n IN [ from  .. to ] %]
-[% item.value.$n %]<br />
+[% item.$fieldname.$n %]<br />
 [% END %]
 [% c.prototype.form_remote_tag( {
-     update => rowid,
+     update => item.itemid,
      url => base,
      evalScripts=>'true',
   } )
@@ -18,11 +18,11 @@
 [% END %]
 
 [% BLOCK edit %]
-<input name="[% item.fieldname %]" size="[% item.fieldsize %]" value="[% item.value | html %]" class="edititem">
+<input name="[% fieldname %]" size="[% field.fieldsize %]" value="[% item.$fieldname | html %]" class="edititem">
 [% END %]
 
 [% BLOCK ajax %]
-  [% idtag = id _ ' ' _ item.fieldname %]
+  [% idtag = item.itemid _ ' ' _ item.fieldname %]
   [% urlpart = [ 'project' 'ajax' listname 'field' id item.fieldname ] %]
   [% url = base _ urlpart.join('/') %]
   <span id="[% idtag %]" class="summary">
@@ -41,7 +41,7 @@
   %]
 [% END %]
 
-[% IF ( item.editsummary and context == 'summary' ) or ( item.editexpanded and conext == 'expanded' ) %]
+[% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
   [% INCLUDE ajax %]
   [% RETURN %]
 [% END %]

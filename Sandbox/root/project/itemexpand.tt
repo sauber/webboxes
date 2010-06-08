@@ -1,18 +1,11 @@
-[%#
-  Identify col# for groupby, orderby etc.
-  filtercol = -1;
-  ordercol  = -2;
-  groupcol  = -3;
-  indexcol  = -4;
-  deletecol = -5;
--%]
 <table class="summary>
 [% SET context = 'expanded' %]
-[% FOREACH item IN record %]
+[% FOREACH field IN fieldlist %]
+  [% SET fieldname = field.fieldname %]
   <tr valign="top">
-    <th>[% item.type %] - [% item.fieldname %]<th>
-    [% IF item.canedit %]
-    <td>edit [% item.value %]<td>
+    <th>[% field.type %] - [% fieldname %]<th>
+    [% IF field.editexpanded %]
+    <td>edit [% item.$fieldname | html %]<td>
     [% ELSE %]
     <td>[% INCLUDE renderfield %]<td>
     [% END %]

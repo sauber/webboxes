@@ -1,5 +1,6 @@
 package Sandbox::Controller::Project;
 use Moose;
+use Text::MultiMarkdown;
 use namespace::autoclean;
 
 BEGIN {extends 'Catalyst::Controller'; }
@@ -56,25 +57,25 @@ sub index :Path {
   $c->log->debug("*** index: loaddata done ***");
 
   $c->log->debug("*** index: trying field actions ***");
-  if ( $c->stash->{field} ) {
-    $self->fieldaction($c,\%param);
+  if ( $c->stash->{fieldname} ) {
+    $self->field_actions($c,\%param);
     $c->detach( $c->view("TT") );
   }
 
   $c->log->debug("*** index: trying item actions ***");
-  if ( $c->stash->{item} ) {
-    $self->itemaction($c,\%param);
+  if ( $c->stash->{itemid} ) {
+    $self->item_actions($c,\%param);
     $c->detach( $c->view("TT") );
   }
 
   $c->log->debug("*** index: trying list actions ***");
-  if ( $c->stash->{list} ) {
-    $self->listaction($c,\%param);
+  if ( $c->stash->{listid} ) {
+    $self->list_actions($c,\%param);
     $c->detach( $c->view("TT") );
   }
 
   $c->log->debug("*** index: trying global actions ***");
-  $self->globalactions($c,\%param);
+  $self->global_actions($c,\%param);
   $c->detach( $c->view("TT") );
 }
 
@@ -97,15 +98,16 @@ sub linkparse {
 sub loaddata {
   my($self, $c, $param) = @_;
 
+  $c->log->debug("*** loaddata: param = " . Dumper($param) . " ***\n");
   # Load list information
   my $listid;
   if ( $param->{listid} ) {
-    my $listid = $param->{listid};
+    $listid = $param->{listid};
     $c->model('Project')->listid( $listid );
     $c->stash(
       listid    => $listid,
-      fieldlist => [ model('Project')->fieldlist ],
-      listname  => [ model('Project')->listname  ],
+      fieldlist => [ $c->model('Project')->fieldlist ],
+      listname  => $c->model('Project')->listname,
     );
   } else {
     $c->model('Project')->reset();
@@ -131,15 +133,15 @@ sub loaddata {
     );
   }
 
-  $c->log->debug("*** loaddata: listid = $listid ***");
-  $c->log->debug("*** lodddata: itemid = $itemid ***");
-  $c->log->debug("*** lodddata: listid = $listid ***");
+  $c->log->debug("*** loaddata: listid    = $listid ***");
+  $c->log->debug("*** lodddata: itemid    = $itemid ***");
+  $c->log->debug("*** lodddata: fieldname = $fieldname ***");
 }
 
 
-# Globalactions
+# Global actions when no list is defined
 #
-sub globalactions {
+sub global_actions {
   my ( $self, $c, $param ) = @_;
 
   $c->log->debug("*** globalactions: start ***");
@@ -148,7 +150,22 @@ sub globalactions {
     $c->log->debug("*** globalactions: calling create ***");
     $c->stash(
       template  => 'project/update.tt',
-      fielddef => $c->model('Project')->config_example(),
+      fieldlist => $c->model('Project')->config_example(),
+    );
+  } elsif ( $param->{action} eq 'updateconf' ) {
+    my $listname = $c->request->params->{listname};
+    my $listid   = $listname;
+    $listid =~ s/\W+//g; # Remove odd chars
+    my $fieldlist = $c->request->params->{fieldlist};
+    $c->log->debug("*** globalactions: create new database $listid ***");
+    $c->model('Project')->listid( $listid );
+    my $saved = $c->model('Project')->saveconfig(
+      fieldlist => $fieldlist, listname => $listname
+    );
+    # XXX: Deal with errors
+    $c->stash(
+      lists => [ $c->model('Project')->alllists ],
+      template => 'project/list.tt',
     );
   } else {
     $c->log->debug("*** globalactions: calling list ***");
@@ -162,13 +179,45 @@ sub globalactions {
 
 # Various operations on one list
 #
-sub listactions {
+sub list_actions {
   my ( $self, $c, $param ) = @_;
+
+  if ( $param->{action} eq 'editconf' ) {
+    $c->stash(
+      template  => 'project/update.tt',
+      listname => $c->stash->{listname},
+      fieldlist => $c->stash->{fieldlist},
+    );
+  } elsif ( $param->{action} eq 'summary' ) {
+    my $items = $c->model('Project')->list_summary();
+    $c->stash(
+      fieldlist => [ $c->model('Project')->summaryfields ],
+      template  => 'project/summary.tt',
+      listname  => $c->stash->{listname},
+      listid    => $c->stash->{listid},
+      items     => $items,
+    );
+  }
+}
+
+# Actions on one item
+#
+sub item_actions {
+  my ( $self, $c, $param ) = @_;
+
+  if ( $param->{action} eq 'ajaxexpand' ) {
+    $c->stash(
+      fieldlist => [ $c->model('Project')->expandedfields ],
+      template   => 'project/itemexpand.tt',
+      no_wrapper => 1,
+      markdown   => Text::MultiMarkdown->new(),
+    );
+  }
 }
 
 # Find out what is being request to be done on the field, and then execute it
 #
-sub fieldactions {
+sub field_actions {
   my ( $self, $c, $param ) = @_;
 
   my $fieldname = $param->{fieldname};
