@@ -3,9 +3,9 @@
 [% END %]
 
 [% BLOCK edit %]
-<select name="[% item.fieldname %]" class="edititem">
+<select name="[% fieldname %]" class="edititem">
 <option>Please select...</option>
-[% FOREACH option IN item.choices %]
+[% FOREACH option IN field.choices %]
 [% IF option == item.$fieldname %]
 <option selected>[% option %]</option>
 [% ELSE %]
@@ -15,6 +15,7 @@
 </select>
 [% END %]
 
+[% SET fieldname = field.fieldname %]
 [% IF context == 'edit' %]
   [% INCLUDE edit %]
   [% RETURN %]

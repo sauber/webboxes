@@ -41,6 +41,7 @@
   %]
 [% END %]
 
+[% SET fieldname = field.fieldname %]
 [% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
   [% INCLUDE ajax %]
   [% RETURN %]

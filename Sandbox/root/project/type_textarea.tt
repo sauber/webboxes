@@ -3,8 +3,8 @@
 [% END %]
 
 [% BLOCK edit %]
-[% SET rows = field.size.split('x').0 %]
-[% SET cols = field.size.split('x').1 %]
+[% SET rows = field.size.split('x').1 %]
+[% SET cols = field.size.split('x').0 %]
 <textarea name="[% fieldname %]" rows="[% rows %]" cols="[% cols %]" style="edititem">[% item.$fieldname | html %]</textarea>
 [% END %]
 
@@ -23,7 +23,7 @@
   %]
 [% END %]
 
-Textarea:
+[% SET fieldname = field.fieldname %]
 [% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
   [% INCLUDE ajax %]
   [% RETURN %]

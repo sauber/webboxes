@@ -1,7 +1,8 @@
-Summary Template
 <link rel="stylesheet" href="/static/css/listofthings.css" type="text/css" />
 <script language="JavaScript" type="text/javascript" src="/static/js/prototype.js"></script>
 <script language="JavaScript" type="text/javascript" src="/static/js/scriptaculous.js"></script>
+
+[% INCLUDE sortmenu %]
 
 [%# USE Dumper %]
 [%# Dumper.dump( fieldlist ) %]
@@ -27,5 +28,5 @@ Summary Template
 
 </table>
 
-[% INCLUDE 'linkmake' action='edititem' title='Add Item' %] |
+[% INCLUDE 'linkmake' action='createitem' title='Add Item' %] |
 <a href="[% base _ 'project' %]">Other Lists</a>

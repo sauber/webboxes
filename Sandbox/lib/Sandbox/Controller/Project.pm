@@ -26,7 +26,7 @@ BEGIN {extends 'Catalyst::Controller'; }
 # == URL parts ==
 #   control:    action viewonly append
 #   dataitems:  listid itemid fieldname
-#   filter:     groupby orderby filterfield filtervalue searchq
+#   filter:     groupby orderby filterfield filtervalue searchq deleteq
 #   fieldvalue: value
 
 
@@ -49,8 +49,7 @@ Catalyst Controller.
 sub index :Path {
   my ( $self, $c, %param ) = @_;
 
-  my $action = $param{action} || 'none';
-
+  #warn "*** index: param = " . Dumper(\%param). " ***\n";;
   $self->linkparse($c,\%param); # Extract valid data from URL
   $c->log->debug("*** index: linkparse done ***");
   $self->loaddata($c,\%param);  # Load relevant data
@@ -84,13 +83,20 @@ sub index :Path {
 sub linkparse {
   my($self,$c,$param) = @_;
 
-  use Data::Dumper;
-  warn "linkparse index args:" . Dumper $param;
+  #use Data::Dumper;
+  #warn "linkparse index args:" . Dumper $param;
   # Keep all the parameters in the url
-  $c->stash(
-    map { $param->{$_} ? ( $_ => $param->{$_} ) : () }
-    qw(action viewonly append listid itemid fieldname groupby orderby filterfield filtervalue searchq value)
-  );
+  my %urlparts;
+  for my $part ( qw(action viewonly append listid itemid fieldname groupby orderby filterfield filtervalue searchq deleteq value) ) {
+    my $value = $param->{$part}
+             || $c->request->params->{$part}
+             || undef;
+    $urlparts{$part} = $value if $value;
+  }
+
+  #use Data::Dumper;
+  $c->log->debug("*** linkparse: urlparts = " . Dumper(\%urlparts) . " ***\n");
+  $c->stash( %urlparts );
 }
 
 # Load list, item or field data
@@ -98,6 +104,7 @@ sub linkparse {
 sub loaddata {
   my($self, $c, $param) = @_;
 
+  use Data::Dumper;
   $c->log->debug("*** loaddata: param = " . Dumper($param) . " ***\n");
   # Load list information
   my $listid;
@@ -133,9 +140,9 @@ sub loaddata {
     );
   }
 
-  $c->log->debug("*** loaddata: listid    = $listid ***");
-  $c->log->debug("*** lodddata: itemid    = $itemid ***");
-  $c->log->debug("*** lodddata: fieldname = $fieldname ***");
+  $c->log->debug("*** loaddata: listid    = " .($listid   ||'')." ***");
+  $c->log->debug("*** lodddata: itemid    = " .($itemid   ||'')." ***");
+  $c->log->debug("*** lodddata: fieldname = " .($fieldname||'')." ***");
 }
 
 
@@ -185,17 +192,37 @@ sub list_actions {
   if ( $param->{action} eq 'editconf' ) {
     $c->stash(
       template  => 'project/update.tt',
-      listname => $c->stash->{listname},
-      fieldlist => $c->stash->{fieldlist},
+      fieldlist => $c->model('Project')->field_definition,
     );
   } elsif ( $param->{action} eq 'summary' ) {
-    my $items = $c->model('Project')->list_summary();
+    my $items = $c->model('Project')->list_summary(
+      map { $c->stash->{$_} ? ( $_=>$c->stash->{$_} ) : () }
+      qw(searchq deleteq groupby orderby filterfield filtervalue)
+    );
     $c->stash(
-      fieldlist => [ $c->model('Project')->summaryfields ],
-      template  => 'project/summary.tt',
-      listname  => $c->stash->{listname},
-      listid    => $c->stash->{listid},
-      items     => $items,
+      template       => 'project/summary.tt',
+      items          => $items,
+      listname       => $c->stash->{listname},
+      listid         => $c->stash->{listid},
+      fieldlist      => [ $c->model('Project')->summaryfields ],
+      orderbyfields  => [ $c->model('Project')->orderbyfields ],
+      groupbyfields  => [ $c->model('Project')->groupbyfields ],
+      filterbyfields => [ $c->model('Project')->filterbyfields ],
+    );
+  } elsif ( $param->{action} eq 'createitem' ) {
+    if ( $c->request->param('save') ) {
+      $c->log->debug("*** list_actions: save new object ***");
+      my $itemid = $c->model('Project')->item_create(
+        item => $c->request->parameters
+      );
+      # Load the item
+      $c->stash(
+        itemid => $itemid,
+        item => $c->model('Project')->item_get( itemid => $itemid ),
+      );
+    } 
+    $c->stash(
+      template       => 'project/itemedit.tt',
     );
   }
 }
@@ -211,6 +238,26 @@ sub item_actions {
       template   => 'project/itemexpand.tt',
       no_wrapper => 1,
       markdown   => Text::MultiMarkdown->new(),
+    );
+  } elsif ( $param->{action} eq 'edit' ) {
+    if ( $c->request->param('save') ) {
+      $c->log->debug("*** list_actions: save old object ***");
+      $c->model('Project')->item_set(
+        itemid => $c->stash->{itemid}, item => $c->request->parameters
+      );
+      # Load the item
+      $c->stash(
+        item => $c->model('Project')->item_get( itemid => $c->stash->{itemid} ),
+      );
+    }
+    $c->stash(
+      template       => 'project/itemedit.tt',
+    );
+  } elsif ( $param->{action} eq 'view' ) {
+    $c->stash(
+      template       => 'project/itemedit.tt',
+      viewonly       => 1,
+      markdown       => Text::MultiMarkdown->new(),
     );
   }
 }

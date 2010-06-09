@@ -5,6 +5,11 @@ use Sort::Maker;
 use MooseX::Method::Signatures;
 BEGIN { extends 'Catalyst::Model::MongoDB' };
 
+sub x {
+ use Data::Dumper;
+ warn Data::Dumper->Dump([$_[1]], ["*** dump $_[0]"]);
+}
+
 
 ########################################################################
 ### Database Connection
@@ -65,21 +70,65 @@ method alllists {
   for my $dbn ( grep { s/^_LOT_// } $self->dbnames() ) {
     next unless $dbn;
     $self->listid( $dbn );
-    #warn "project_collections: dbn=$dbn, self=$self\n";
+    #warn "*** alllists: dbn=$dbn, self=$self\n";
     # The shortname and the long name
     push @list, {
       listid   => $dbn,
-      listname => $self->schema->query->next->{name},
+      listname => $self->schema->query->next->{name} || "unknown",
     };
   }
-  #use Data::Dumper;
-  #warn Dumper \@list;
   return @list;
 }
 
 
 ########################################################################
 ### Configuration Options
+########################################################################
+
+# Put in new definition, or update existing
+#
+method saveconfig( Str :$fieldlist, Str :$listname ) {
+  # Parse the YAML formatted string
+  my $fieldref = Load $fieldlist;
+  return undef unless ref $fieldref;
+
+  # Delete old config (if any)
+  $self->schema->drop;
+  # Insert new config
+  $self->schema->insert({
+    name => $listname,
+    fieldlist => [ @$fieldref ],
+  });
+}
+
+# Delete a Project Collection
+#
+method collection_delete ( Str :$listid ) {
+  $self->dbh->drop;
+}
+
+method config_example {
+  return Dump [
+    {
+       fieldname => 'Title',
+    },
+    {
+       fieldname => 'Description',
+       fieldtype => 'textarea',
+       size => '40x2',
+    },
+    {
+       fieldname => 'Category',
+       fieldtype => 'select',
+       choices => [ qw( Low Medium High ) ],
+    },
+  ];
+}
+
+
+
+########################################################################
+### Field Operations
 ########################################################################
 
 method fieldlist {
@@ -150,48 +199,41 @@ method field_attributes ( Str :$fieldname ) {
 # All field names of a list
 #
 method allfields {
-  return map $_->{field}, $self->fieldlist;
+  return map $_->{fieldname}, $self->fieldlist;
 }
 
-# Put in new definition, or update existing
+# All fields that can be used for sorting
+method orderbyfields {
+  return map $_->{fieldname}, grep $_->{orderby}, $self->fieldlist;
+}
+
+# All fields that can be used for grouping
+method groupbyfields {
+  return map $_->{fieldname}, grep $_->{groupby}, $self->fieldlist;
+}
+
+method filterbyfields {
+  my @fieldlist = map $_->{fieldname}, grep $_->{filterby}, $self->fieldlist;
+  my @filters;
+  for my $field ( @fieldlist ) {
+    for my $value ( $self->fieldvalues( fieldname => $field ) ) {
+      push @filters, { fieldname => $field, value => $value };
+    }
+  }
+  return @filters;
+}
+
+# All values for a given field
 #
-method saveconfig( Str :$fieldlist, Str :$listname ) {
-  # Parse the YAML formatted string
-  my $fieldref = Load $fieldlist;
-  return undef unless ref $fieldref;
-
-  # Delete old config (if any)
-  $self->schema->drop;
-  # Insert new config
-  $self->schema->insert({
-    name => $listname,
-    fieldlist => [ @$fieldref ],
-  });
+method fieldvalues ( Str :$fieldname ) {
+  my %values;
+  my $result = $self->items->query({});
+  while ( my $item = $result->next ) {
+    ++$values{$item->{$fieldname}} if $item->{$fieldname};
+  }
+  return sort keys %values;
 }
 
-# Delete a Project Collection
-#
-method collection_delete ( Str :$listid ) {
-  $self->dbh->drop;
-}
-
-method config_example {
-  return Dump [
-    {
-       fieldname => 'Title',
-    },
-    {
-       fieldname => 'Description',
-       fieldtype => 'textarea',
-       size => '40x2',
-    },
-    {
-       fieldname => 'Category',
-       fieldtype => 'select',
-       choices => [ qw( Low Medium High ) ],
-    },
-  ];
-}
 
 
 ########################################################################
@@ -202,10 +244,11 @@ method config_example {
 #
 method list_summary(
   Str :$searchq?,
+  Str :$deleteq?,
   Str :$groupby?,
   Str :$orderby?,
-  Str :$filterby?,
-  Str :$deleted?
+  Str :$filterfield?,
+  Str :$filtervalue?
 ) {
   # Get a list of summary fields from config
   my @fieldlist = $self->summaryfields();
@@ -217,29 +260,21 @@ method list_summary(
   # Only keep matching fields
   # First line is field names
 
-  my $allitems = $self->items->query;
+  my $filter = {};
+  $filter = { $filterfield => $filtervalue } if $filterfield and $filtervalue;
+  my $allitems = $self->items->query( $filter );
+
+  warn sprintf "*** list_summary: searchq = %s ***\n",     ($searchq     || '');
+  warn sprintf "*** list_summary: deleteq = %s ***\n",     ($deleteq     || '');
+  warn sprintf "*** list_summary: orderby = %s ***\n",     ($orderby     || '');
+  warn sprintf "*** list_summary: groupby = %s ***\n",     ($groupby     || '');
+  warn sprintf "*** list_summary: filterfield = %s ***\n", ($filterfield || '');
+  warn sprintf "*** list_summary: filtervalue = %s ***\n", ($filtervalue || '');
+
   while ( my $r = $allitems->next ) {
     next unless $self->item_match( item=>$r, keyword=>$searchq );
-    next if not $deleted and $r->{_deleted};
-
-    my $groupname = $groupby  ? $r->{$groupby} : $r->{Engineer};
-    $groupname ||= 'UNKNOWN';
-    #push @{ $list{$groupname} }, [
-    #  ( 
-    #     map {{
-    #       value => $r->{$_},
-    #       fieldname => $_,
-    #       %{ $attr{$_} },
-    #     }}
-    #     @fieldlist
-    #  ),
-    #  $r->{_deleted},
-    #  $r->{_id}{value},
-    #  ( $groupby  ? $r->{$groupby} : undef ),
-    #  ( $orderby  ? $r->{$orderby} : undef ),
-    #  ( $filterby ? $r->{filterby} : undef ),
-    #
-    # ];
+    next if not $deleteq and $r->{_deleted};
+    my $groupname = $groupby ? $r->{$groupby} : '';
     push @{ $list{$groupname} }, {
       itemid => $r->{_id}{value},
       _deleted => $r->{_deleted},
@@ -308,19 +343,66 @@ method item_read( Str :$itemid ) {
   return $matches->next;
 }
 
-#method item_write( Str :$itemid, HashRef :$item ) {
-#  my $objid = MongoDB::OID->new($itemid);
-#  $self->items->update();
-#}
+# Write a new record into database
+#
+method item_create( HashRef :$item ) {
+  #use Data::Dumper;
+  #warn "*** item_create: item = " . Dumper($item) . " ***\n";
+  my %insert;
+  for my $field ( $self->fieldlist ) {
+    my $fieldname = $field->{fieldname};
+    #warn "*** item_create: fieldname = $fieldname ***\n";
+    my $fieldtype = $field->{type};
+    #warn "*** item_create: fieldtype = $fieldtype ***\n";
+    next unless my $value = $item->{$fieldname};
+    #warn "*** item_create: value = $value ***\n";
 
+    ## Identify type of field
+    #my $typefuncname = $fieldtype . "_datatype";
+    #my $datatypesubref = \&$typefuncname ;
+    #my $datatype = &$datatypesubref();
+    #next unless $datatype eq 'scalar' or $datatype eq 'array';
+    ##warn "*** item_create: datatype = $datatype ***\n";
+
+    ## scalar<->array conversion if required
+    #$value = pop @$value if $datatype eq 'scalar' and     ref $value;
+    #$value = [ $value ]  if $datatype eq 'array'  and not ref $value;
+    ##warn "*** item_create: value converted = $value ***\n";
+
+    $value = $self->valueconvert( fieldtype => $fieldtype, value => $value );
+    next unless $value;
+
+    $insert{$fieldname} = $value;
+  }
+  #use Data::Dumper;
+  #warn "*** item_create: insert = " . Dumper(\%insert) . " ***\n";
+  x "item_create: insert", \%insert;
+  # Returns the oid
+  $self->items->insert(\%insert)->{value};
+}
+
+# Update one or more fields for an item
+#
 method item_update( Str :$itemid, HashRef :$updates ){
   my $objid = $self->oid($itemid);
+  my $matches = 0;
   while ( my ($key,$value) = each %$updates ) {
     warn "*** item_update $objid set $key = $value ***\n";
-    my $matches = $self->items->update(
-      { _id => $objid }, { '$set', { $key => $value } }
-    )
+    if ( ref $value ) {
+      $matches += $self->items->update(
+        { _id => $objid }, { '$push', { $key => shift @$value } }
+      );
+    } elsif ( $value ) {
+      $matches += $self->items->update(
+        { _id => $objid }, { '$set', { $key => $value } }
+      );
+    } else {
+      $matches += $self->items->update(
+        { _id => $objid }, { '$unset', { $key => 1 } }
+      );
+    }
   }
+  return $matches;
 }
 
 #method item_delete( Str :$itemid ) {
@@ -372,6 +454,23 @@ method item_get ( Str :$itemid ) {
   $self->item_read( itemid => $itemid );
 }
 
+# Update an item, overwrite/append/delete fields
+#
+method item_set ( Str :$itemid, HashRef :$item ) {
+  my %fieldlist = ( map { $_->{fieldname} => $_ } $self->fieldlist );
+  my %update;
+  for my $fieldname ( keys %$item ) {
+    next unless $fieldlist{$fieldname};
+    my $fieldtype = $fieldlist{$fieldname}{type};
+    my $value = $item->{$fieldname};
+    $value = $self->valueconvert( fieldtype => $fieldtype, value => $value );
+    $update{$fieldname} = $value;
+  }
+  x "item_set: update", \%update;
+  $self->item_update( itemid => $itemid, updates => \%update );
+}
+
+
 
 ########################################################################
 ### Operations on a single field
@@ -396,18 +495,46 @@ method field_getvalue ( Str :$itemid, Str :$fieldname ) {
 
 
 ########################################################################
+### Operations on a single value
+########################################################################
+
+# Convert value to correct type: undef, scalar or array
+#
+method valueconvert ( Any :$fieldtype, Any :$value ) {
+  $fieldtype ||= 'text';
+  # Identify type of field
+  my $typefuncname = $fieldtype . "_datatype";
+  my $datatypesubref = \&$typefuncname ;
+  my $datatype = &$datatypesubref();
+  return undef unless $datatype eq 'scalar' or $datatype eq 'array';
+  #warn "*** item_create: datatype = $datatype ***\n";
+
+  # scalar<->array conversion if required
+  $value = pop @$value if $datatype eq 'scalar' and     ref $value;
+  $value = [ $value ]  if $datatype eq 'array'  and not ref $value;
+  #warn "*** item_create: value converted = $value ***\n";
+
+  return $value;
+}
+
+
+########################################################################
 ### Sorting according to field type
 ########################################################################
 
+sub text_datatype { 'scalar' }
 sub text_sorttype { 'string' }
 sub text_sortcode { shift }
 
+sub textarea_datatype { 'scalar' }
 sub textarea_sorttype { 'string' }
 sub textarea_sortcode { shift }
 
+sub select_datatype { 'scalar' }
 sub select_sorttype { 'string' }
 sub select_sortcode { shift }
 
+sub journal_datatype { 'array' }
 sub journal_sorttype { 'number' }
 sub journal_sortcode {
   my $_value = shift;
@@ -421,6 +548,7 @@ sub journal_sortcode {
   return $timestamp;
 }
 
+sub activity_datatype { 'none' } 
 sub activity_sorttype { 'number' } 
 sub activity_sortcode {
   my $_logdata = shift;
@@ -429,6 +557,7 @@ sub activity_sortcode {
   return $level;
 }
 
+sub cycle_datatype { 'scalar' }
 sub cycle_sorttype { 'number' }
 sub cycle_sortcode { shift || 5 }
 

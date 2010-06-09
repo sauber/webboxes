@@ -1,0 +1,33 @@
+<p>
+[% INCLUDE linkmake action="summary" title="View List" itemid="" %] |
+[% INCLUDE linkmake action="createitem" title="Add Item" itemid="" %]
+[% SET context = 'edit' %]
+[% SET context = 'view' IF viewonly %]
+</p>
+<form method=post class="edititem">
+<input type="hidden" name="olditem" value="[% item_id %]">
+<table class="edititem">
+<tr align=left><th class="edititem">Field</th><th class="edititem">Value</th></tr>
+[% FOREACH field IN fieldlist %]
+<tr align=top align=left>
+  <th class="edititem">[% field.fieldname %]</th>
+  <td class="edititem">[% INCLUDE renderfield context=context %]</td>
+</tr>
+[% END %]
+<tr><th class="edititem"></th><td class="edititem">
+[% UNLESS viewonly %]
+<input type=submit name="save" value="Save">
+<input type=submit name="delete" value="Delete !!!">
+<input type=reset>
+[% END %]
+</td></tr>
+</table>
+</form>
+
+[% INCLUDE linkmake action="summary" title="View List" itemid="" %] |
+[% INCLUDE linkmake action="createitem" title="Add Item" itemid="" %]
+[% INCLUDE viewlog %]
+
+[%# USE Dumper %]
+[%# Dumper.dump_html( fieldlist ) %]
+[%# Dumper.dump_html( item ) %]

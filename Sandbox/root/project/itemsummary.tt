@@ -17,12 +17,12 @@
     %]
     </td>
   [% ELSE %]
-    [% INCLUDE renderfield %]
+    <td class="summary">[% INCLUDE renderfield %]</td>
   [% END %]
 [% END %]
 <td class="summary">
-<a href="[% base _ 'project/item/view/' _ item.itemid %]">view</a>
-<a href="[% base _ 'project/item/edit/' _ item.itemid %]">edit</a>
+<a href="[% INCLUDE linkmake itemid=item.itemid action='view' fieldname='' %]">view</a>
+<a href="[% INCLUDE linkmake itemid=item.itemid action='edit' fieldname='' %]">edit</a>
 </td>
 </tr>
 

@@ -15,7 +15,7 @@
   <td><pre>
 Fieldlist Attributes:
 
-  field: &lt;Field name&gt;
+  fieldname: &lt;Field name&gt;
   type: &lt;text|textarea|select|checkboxgroup|templateselect&gt;
   isindex: 'true'      # Uniq index field for list
   showsummary: 'true'  # Show field in summary line

@@ -3,7 +3,7 @@
 [% END %]
 
 [% BLOCK edit %]
-<input name="[% fieldname %]" size="[% field.fieldsize %]" value="[% item.$fieldname | html %]" class="edititem">
+<input name="[% fieldname %]" size="[% field.size IF field.size > 15 %]" value="[% item.$fieldname | html %]" class="edititem">
 [% END %]
 
 [% BLOCK ajax %]
@@ -20,6 +20,7 @@
   %]
 [% END %]
 
+[% SET fieldname = field.fieldname %]
 [% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
   [% INCLUDE ajax %]
   [% RETURN %]
