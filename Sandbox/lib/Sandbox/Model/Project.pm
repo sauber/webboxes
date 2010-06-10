@@ -470,6 +470,35 @@ method item_set ( Str :$itemid, HashRef :$item ) {
   $self->item_update( itemid => $itemid, updates => \%update );
 }
 
+# Find start and stop time for an item
+#
+method itemstartstop ( HashRef :$item ) {
+  my %T;
+  my $log = $item->{auditlog};
+  for my $entry ( @$log ) {
+    my $sec = $entry->{time};
+    # Start/stop time
+    $T{defined} ||= $sec;
+    if ( $entry->{message} =~ /State \w+ to: (\S+)/ ) {
+      my $status = $1;
+      $T{init}      = $sec, next if $status eq 'Initiation';
+      $T{closed}    = $sec, next if $status eq 'Closed';
+      $T{canceled}  = $sec, next if $status eq 'Canceled';
+      # Unclose/uncancel in case project is ongoing again.
+      delete $T{closed};
+      delete $T{canceled};
+      # Anything else than Init/Close/Cancel means project is going on
+      $T{started} ||= $sec;
+    }
+  }
+  $T{started} ||= ( $T{init}   || $T{closed}   );
+  $T{stopped} ||= ( $T{closed} || $T{canceled} );
+  return (
+    $T{canceled},
+    $T{started},
+    $T{stopped},
+  );
+}
 
 
 ########################################################################

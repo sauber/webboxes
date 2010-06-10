@@ -9,7 +9,7 @@
 <li>
   <a href="[% c.uri_for('action', 'summary', 'listid',   list.listid) %]">summary</a>
   <a href="[% c.uri_for('action', 'expanded', 'listid',   list.listid) %]">expanded</a>
-  <a href="[% c.uri_for('action', 'editconf', 'listid', list.listid) %]">edit</a>
+  <a href="[% c.uri_for('action', 'editconf', 'listid', list.listid) %]">config</a>
   <a href="[% c.uri_for('action', 'delete', 'listid', list.listid) %]">delete</a>
   - [% list.listname | html %]
 </li>

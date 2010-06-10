@@ -18,14 +18,14 @@ sub x {
 ########################################################################
 
 # Add a job definition
-#   id:          optional, A uniq identifier of the item
-#   category:    optional, list of categories this item belongs to
-#   start:       optional, start time (since epoch) if item already started
-#   stop:        optional, end time (since epoch) if item already completed
-#   completed:   optional, how completed (0.0-1.0) if already started
-#   duration:    optional, compared to average duration (1.0) how large is item
-#   queuename:   optional, if already assigned to a queue
-#   queueposition: optional, if already assigned position in queue
+#   id:        optional, A uniq identifier of the item
+#   category:  optional, list of categories this item belongs to
+#   start:     optional, start time (since epoch) if item already started
+#   stop:      optional, end time (since epoch) if item already completed
+#   completed: optional, how completed (0.0-1.0) if already started
+#   duration:  optional, compared to average duration (1.0) how large is item
+#   queuename: optional, if already assigned to a queue
+#   queue:     optional, if already assigned position in queue
 #
 method item_add ( HashRef :$item ) {
   my $queuename = $item->{queuename} || '';
@@ -61,24 +61,39 @@ method queue_list {
   keys %{ $self->{queue} };
 }
 
+method queue_get ( Str :$queuename? ) {
+  $queuename ||= '';
+
+  return @{ $self->{queue}{$queuename} };
+}
+
 
 ########################################################################
 ### ESTIMATES
 ########################################################################
 
 # Find out average duration of item
+# XXX: Only look at stop time time; last stoptime - first stoptime / itemcount
 #
 method average_item_duration ( Str :$queuename? ) {
   $queuename ||= '';
 
-  my($sum,$count);
+  my(@stoptime);
   for my $item ( @{ $self->{queue}{$queuename} } ) {
-    next unless $item->{start} and $item->{stop};
-    $sum += ( $item->{stop} - $item->{start} );
-    ++$count;
+    #next unless $item->{start} and $item->{stop};
+    #$sum += ( $item->{stop} - $item->{start} );
+    #++$count;
+    next unless $item->{stop};
+    push @stoptime, $item->{stop};
   }
-  return undef unless $count;
-  return $sum / $count;
+  #return undef unless $count;
+  #return $sum / $count;
+  return undef unless $#stoptime >= 1;
+  @stoptime = sort { $a <=> $b } @stoptime;
+  my $max = $stoptime[-1];
+  my $min = $stoptime[0];
+  my $avg = ( $max - $min ) / $#stoptime;
+  return $avg;
 }
 
 method estimated_item_stop ( Str :$queuename? ) {
@@ -88,19 +103,70 @@ method estimated_item_stop ( Str :$queuename? ) {
   my $duration = $self->average_item_duration( queuename => $queuename );
   my $cursor = time;
   for my $item ( @{ $self->{queue}{$queuename} } ) {
+    $item->{etastop} = $item->{stop};
     next if $item->{stop};
     my $completed = $item->{completed} || 0;
     my $remaining = $duration - ( $completed * $duration );
     my $eta = $cursor + $remaining;
     $cursor += $remaining;
     push @list, { item => $item, duration=>$remaining, eta => $eta };
+    $item->{etaduration} = $remaining;
+    $item->{etastop} = int $eta;
   }
   return @list;
 }
 
+# Sort a queue
+#  All completed, by stop date
+#  All not completed, by position, by how completed, and then by starttime
+#  All not started, by position then by starttime
+#
+method queue_sort ( Str :$queuename? ) {
+  $queuename ||= '';
+
+  # Categorize items
+  my @finished;
+  my @incomplete;
+  my @pending;
+  for my $item ( @{ $self->{queue}{$queuename} } ) {
+    if ( $item->{stop} ) {
+      push @finished, $item;
+    } elsif ( $item->{completed} ) {
+      push @incomplete, $item;
+    } else {
+      push @pending, $item;
+    }
+  }
+
+  # Sort finished items
+  @finished = sort { ( $a->{stop} || 0+"Infinity" ) <=> ( $b->{stop}|| 0+"Infinity" )  } @finished;
+
+  # Sort incomplete items
+  @incomplete = sort {
+    ( $a->{position} || 0+"Infinity" ) <=> ( $b->{position} || 0+"Infinity" )   # First position first
+    ||
+    ( $b->{completed} || 0 ) <=> ( $a->{completed} || 0 ) # Most completed first
+    ||
+    ( $a->{start} || 0+"Infinity" ) <=> ( $b->{start} || 0+"Infinity" )         # Oldest first
+  } @incomplete;
+
+  # Sort pending items
+  @pending = sort {
+    ( $a->{position} || 0+"Infinity" ) <=> ( $b->{position} || 0+"Infinity" )   # First position first
+    ||
+    ( $a->{start} || 0+"Infinity" ) <=> ( $b->{start} || 0+"Infinity" )         # Oldest first
+  } @pending;
+
+  # Rearrange the queue
+  my $position = 1;
+  @{ $self->{queue}{$queuename} } =
+    map { $_->{position} = $position++; $_ }
+    @finished, @incomplete, @pending
+}
+
 
 ########################################################################
-### QUEUES
+### Move Item Within Queue
 ########################################################################
 
 # Move an item to different position in queue

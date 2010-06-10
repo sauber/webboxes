@@ -27,6 +27,7 @@ Fieldlist Attributes:
   filterby: 'true'     # Field can be used for filtering
   size: W or WxH       # numbers or chars visible 
   choices:             # Valid input choices
+  loadmananager: <label|color|completed|queuename|position>
 </pre></td>
 </tr>
 <tr><th></th><td>

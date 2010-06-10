@@ -5,8 +5,8 @@ use Moose;
 
 BEGIN { extends 'Catalyst::Model' }
 
-has hostname => ( isa => 'Str', is => 'ro' );
-has port     => ( isa => 'Int', is => 'ro' );
+has hostname => ( isa => 'Str', is => 'ro', default => 'localhost' );
+has port     => ( isa => 'Int', is => 'ro', default => 27017 );
 has dbname   => ( isa => 'Str', is => 'ro' );
 
 has 'connection' => (
