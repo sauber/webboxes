@@ -38,8 +38,16 @@ while ( my $item = $items->next ) {
 
   my($cancel,$start,$stop) = $proj->itemstartstop( item => $item );
 
-  # Skip cancelled (but do include deleted)
+  # Skip cancelled
   next if $cancel;
+
+  # Skip deleted if not completed
+  #next if $item->{_deleted} and not $item->{stop};
+  if ( $item->{Title} =~ /Ronbook/ ) {
+    x 'deleted item', $item;
+    exit;
+  }
+
   #printf "*** %s\n", $item->{Title};
   # Find stop
   #   or completed

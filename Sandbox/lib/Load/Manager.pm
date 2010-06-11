@@ -8,7 +8,6 @@ sub x {
  warn Data::Dumper->Dump([$_[1]], ["*** dump $_[0]"]);
 }
 
-
 # This will take a list of items and assign them into queues
 # Moving already assign items from queue to another, or shift position
 # within the queue will result in new ETA for all affected items.
@@ -73,40 +72,58 @@ method queue_get ( Str :$queuename? ) {
 ########################################################################
 
 # Find out average duration of item
-# XXX: Only look at stop time time; last stoptime - first stoptime / itemcount
+# XXX:  TODO
+#   - Find both average duration of a project and closing rate
+#   - If cannot find for current queue, then calculate for all queues, and choose average.
+#   - Cache the results.
 #
 method average_item_duration ( Str :$queuename? ) {
   $queuename ||= '';
 
-  my(@stoptime);
+  my($sum,$count,@stoptime);
   for my $item ( @{ $self->{queue}{$queuename} } ) {
-    #next unless $item->{start} and $item->{stop};
-    #$sum += ( $item->{stop} - $item->{start} );
-    #++$count;
+    # Collect for stop rate
     next unless $item->{stop};
     push @stoptime, $item->{stop};
+    # Collect for duration
+    next unless $item->{start};
+    $sum += ( $item->{stop} - $item->{start} ); ++$count;
+   
   }
-  #return undef unless $count;
-  #return $sum / $count;
-  return undef unless $#stoptime >= 1;
-  @stoptime = sort { $a <=> $b } @stoptime;
-  my $max = $stoptime[-1];
-  my $min = $stoptime[0];
-  my $avg = ( $max - $min ) / $#stoptime;
-  return $avg;
+  # Average duration
+  my $avgduration = $count ? $sum/$count : undef;
+  # Averate closing rate
+  my $avgrate = undef;
+  if ( $#stoptime >= 1 ) {
+      @stoptime = sort { $a <=> $b } @stoptime;
+    my $last = $stoptime[-1];
+    my $first = $stoptime[0];
+    $avgrate = ( $last - $first ) / $#stoptime;
+  }
+  # Calculate for all queue's and use their average
+  if ( not $avgrate or not $avgduration ) {
+    # XXX: Static for now
+    $avgrate = 45;
+    $avgduration = 120;
+  }
+  return ( $avgrate, $avgduration );
 }
 
+# Find etastart, etastop for one item
+# XXX: TODO
+#   - Calculate up from all incomplete/pending items
+#   - Cache results
 method estimated_item_stop ( Str :$queuename? ) {
   $queuename ||= '';
 
   my @list;
-  my $duration = $self->average_item_duration( queuename => $queuename );
+  my($rate,$duration) = $self->average_item_duration( queuename => $queuename );
   my $cursor = time;
   for my $item ( @{ $self->{queue}{$queuename} } ) {
     $item->{etastop} = $item->{stop};
     next if $item->{stop};
     my $completed = $item->{completed} || 0;
-    my $remaining = $duration - ( $completed * $duration );
+    my $remaining = $rate - ( $completed * $rate );
     my $eta = $cursor + $remaining;
     $cursor += $remaining;
     push @list, { item => $item, duration=>$remaining, eta => $eta };
