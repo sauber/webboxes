@@ -1,4 +1,4 @@
-#!/usr/bin/perl -I../lib
+#!/usr/bin/env perl -I../lib
 
 use strict;
 use warnings;
@@ -42,11 +42,7 @@ while ( my $item = $items->next ) {
   next if $cancel;
 
   # Skip deleted if not completed
-  #next if $item->{_deleted} and not $item->{stop};
-  if ( $item->{Title} =~ /Ronbook/ ) {
-    x 'deleted item', $item;
-    exit;
-  }
+  next if $item->{_deleted} and not $stop;
 
   #printf "*** %s\n", $item->{Title};
   # Find stop
@@ -92,9 +88,10 @@ for my $queuename ( sort $jobs->queue_list ) {
   $jobs->queue_sort( queuename => $queuename );
   $jobs->estimated_item_stop( queuename => $queuename );
 
-  my @q = $jobs->queue_get( queuename => $queuename );
+  my %avg = $jobs->queue_stats( queuename => $queuename );
   print "=== Queuename: $queuename ===\n";
-  #printf("%s,%s,%s,%s %s\n", $_->{position}, ($_->{stop}||''), ($_->{completed}||''), ($_->{start}||''), $_->{label}) for @q;
-  printf("%s, %s%% %s\n", scalar(localtime($_->{etastop}||'')), 100*($_->{completed}||''), $_->{label}) for @q;
-  #x $queuename, \@q;
+  printf "    Average Duration: %s days, Averages interval: %s days\n", int($avg{averageduration}/(24*3600)), int($avg{averagestoprate}/(24*3600));
+  for my $j ( $jobs->queue_get( queuename => $queuename ) ) {
+    printf("%s, %s%% %s\n", scalar(localtime($j->{etastop}||'')), 100*($j->{completed}||''), $j->{label}) if $j->{etastop} > (time()-180*24*3600);
+  }
 }

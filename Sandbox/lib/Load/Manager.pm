@@ -29,6 +29,7 @@ sub x {
 method item_add ( HashRef :$item ) {
   my $queuename = $item->{queuename} || '';
   push @{ $self->{queue}{$queuename} }, $item;
+  $self->clear_averages();
 }
 
 method item_remove ( HashRef :$item ) {
@@ -39,6 +40,7 @@ method item_remove ( HashRef :$item ) {
       if ( $self->{queue}{$queuename}[$i]{id} eq $id ) {
         #warn "Removing item $id from position $i\n";
         splice @{ $self->{queue}{$queuename} }, $i, 1;
+        $self->clear_averages();
         return;
       }
     }
@@ -71,6 +73,111 @@ method queue_get ( Str :$queuename? ) {
 ### ESTIMATES
 ########################################################################
 
+# Average of numbers
+#
+sub average {
+  my @n = sort { $a <=> $b } @_;
+  return undef unless @n;
+  my $avg;
+  $avg += $_ for @n; $avg /= @n;
+  return $avg;
+}
+
+# The middle number
+sub median {
+  my @n = sort { $a <=> $b } @_;
+  return undef unless @n;
+  return $n[ int(@n/2) ];
+}
+
+# Given a list of intervals, calculate
+#  Average duration
+#  Average rate of start
+#  Average rate of stop
+#  Median duration
+#  Median rate of start
+#  Median rate of stop
+#
+sub averages {
+  my @n = @_;
+
+  my($avgdur,$avgstart,$avgstop,$meddur,$medstart,$medstop);
+  my(@durs,@starts,@stops);
+  for ( @n ) {
+    push @durs, ( $_->{stop} - $_->{start} ) if $_->{stop} and $_->{start};
+    push @starts, $_->{start} if $_->{start};
+    push @stops, $_->{stop} if $_->{stop};
+  }
+  if ( $#starts >= 1 ) {
+    @starts = sort { $a <=> $b } @starts;
+    @starts = map { $starts[$_+1] - $starts[$_] } 0..($#starts-1);
+  } else {
+    @starts = ();
+  }
+  if ( $#stops >= 1 ) {
+    @stops = sort { $a <=> $b } @stops;
+    @stops = map { $stops[$_+1] - $stops[$_] } 0..($#stops-1);
+  } else {
+    @stops = ();
+  }
+  #x 'durations', \@durs;
+  #x 'starts', \@starts;
+  #x 'stops', \@stops;
+  return (
+    averageduration => average(@durs),
+    medianduration => median(@durs),
+    averagestartrate => average(@starts),
+    medianstartrate => median(@starts),
+    averagestoprate => average(@stops),
+    medianstoprate => median(@stops),
+  );
+}
+
+method clear_averages {
+  delete $self->{q_avg};
+}
+
+# Calculate averages for all queues. Cache the results.
+# Use averages of other queues, if queue does not have own.
+#
+method build_averages {
+
+  return if $self->{q_avg};
+  # Collect for all queues
+  for my $queuename ( $self->queue_list ) {
+    $self->{q_avg}{$queuename} = { averages( @{ $self->{queue}{$queuename} } ) };
+  }
+  #x 'Queue average', $self->{q_avg};
+
+  my %S;
+  for my $stat ( qw(averageduration medianduration
+                    averagestartrate medianstartrate
+                    averagestoprate medianstoprate) ) {
+    # Calculate averages of averages
+    for my $queuename ( $self->queue_list ) {
+      push @{ $S{$stat} }, $self->{q_avg}{$queuename}{$stat}
+        if $self->{q_avg}{$queuename}{$stat}
+    }
+    $S{$stat} = average( @{ $S{$stat} } );
+    # Use overall average in queues that don't have own average
+    for my $queuename ( $self->queue_list ) {
+      $self->{q_avg}{$queuename}{$stat} = $S{$stat}
+        unless $self->{q_avg}{$queuename}{$stat}
+    }
+  }
+  #x 'Avererage average', \%S;
+  #x 'Queue average', $self->{q_avg};
+}
+
+# Get the average stats for a queue 
+#
+method queue_stats ( Str :$queuename? ) {
+  $queuename ||= '';
+  $self->build_averages();
+  return %{ $self->{q_avg}{$queuename} };
+}
+ 
+
 # Find out average duration of item
 # XXX:  TODO
 #   - Find both average duration of a project and closing rate
@@ -80,33 +187,9 @@ method queue_get ( Str :$queuename? ) {
 method average_item_duration ( Str :$queuename? ) {
   $queuename ||= '';
 
-  my($sum,$count,@stoptime);
-  for my $item ( @{ $self->{queue}{$queuename} } ) {
-    # Collect for stop rate
-    next unless $item->{stop};
-    push @stoptime, $item->{stop};
-    # Collect for duration
-    next unless $item->{start};
-    $sum += ( $item->{stop} - $item->{start} ); ++$count;
-   
-  }
-  # Average duration
-  my $avgduration = $count ? $sum/$count : undef;
-  # Averate closing rate
-  my $avgrate = undef;
-  if ( $#stoptime >= 1 ) {
-      @stoptime = sort { $a <=> $b } @stoptime;
-    my $last = $stoptime[-1];
-    my $first = $stoptime[0];
-    $avgrate = ( $last - $first ) / $#stoptime;
-  }
-  # Calculate for all queue's and use their average
-  if ( not $avgrate or not $avgduration ) {
-    # XXX: Static for now
-    $avgrate = 45;
-    $avgduration = 120;
-  }
-  return ( $avgrate, $avgduration );
+  my %avg = $self->queue_stats( queuename => $queuename );
+  #x "Averages for $queuename", \%avg;
+  return ( $avg{averagestoprate}, $avg{averageduration} );
 }
 
 # Find etastart, etastop for one item
@@ -178,7 +261,9 @@ method queue_sort ( Str :$queuename? ) {
   my $position = 1;
   @{ $self->{queue}{$queuename} } =
     map { $_->{position} = $position++; $_ }
-    @finished, @incomplete, @pending
+    @finished, @incomplete, @pending;
+
+  $self->clear_averages();
 }
 
 
