@@ -47,6 +47,20 @@ method item_remove ( HashRef :$item ) {
   }
 }
 
+# Get all items in queue, or only more recent that some time ago
+#
+method items_get ( Str :$queuename?, Num :$recent? ) {
+  $queuename ||= '';
+  return grep {
+      if ( $recent and $_->{stop} and time()-$recent > $_->{stop} ) {
+        undef;
+      } else {
+        1;
+      }
+    }
+    @{ $self->{queue}{$queuename} };
+}
+
 ########################################################################
 ### QUEUES
 ########################################################################

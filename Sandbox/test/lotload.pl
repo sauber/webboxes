@@ -88,10 +88,13 @@ for my $queuename ( sort $jobs->queue_list ) {
   $jobs->queue_sort( queuename => $queuename );
   $jobs->estimated_item_stop( queuename => $queuename );
 
+  my @items = $jobs->items_get( queuename => $queuename, recent => (180*24*3600));
+  next unless @items;
   my %avg = $jobs->queue_stats( queuename => $queuename );
   print "=== Queuename: $queuename ===\n";
   printf "    Average Duration: %s days, Averages interval: %s days\n", int($avg{averageduration}/(24*3600)), int($avg{averagestoprate}/(24*3600));
-  for my $j ( $jobs->queue_get( queuename => $queuename ) ) {
-    printf("%s, %s%% %s\n", scalar(localtime($j->{etastop}||'')), 100*($j->{completed}||''), $j->{label}) if $j->{etastop} > (time()-180*24*3600);
+  for my $j ( @items ) {
+    #printf("%s, %s%% %s\n", scalar(localtime($j->{etastop}||'')), 100*($j->{completed}||''), $j->{label}) if $j->{etastop} > (time()-180*24*3600);
+    printf("%s, %s%% %s\n", scalar(localtime($j->{etastop}||'')), 100*($j->{completed}||''), $j->{label});
   }
 }
