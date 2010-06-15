@@ -11,6 +11,7 @@
   <a href="[% c.uri_for('action', 'expanded', 'listid',   list.listid) %]">expanded</a>
   <a href="[% c.uri_for('action', 'editconf', 'listid', list.listid) %]">config</a>
   <a href="[% c.uri_for('action', 'delete', 'listid', list.listid) %]">delete</a>
+  <a href="[% c.uri_for('action', 'loadmanager', 'listid', list.listid) %]">loadmanager</a>
   - [% list.listname | html %]
 </li>
 [% END %]

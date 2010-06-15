@@ -243,6 +243,11 @@ method queue_sort ( Str :$queuename? ) {
   my @incomplete;
   my @pending;
   for my $item ( @{ $self->{queue}{$queuename} } ) {
+    # Sanetize fields that should be numbers
+    for my $f ( qw(stop completed position start) ) {
+      next unless $item->{$f};
+      $item->{$f} =~ s/^.*?([0-9\-\.]*).*?$/$1/;
+    }
     if ( $item->{stop} ) {
       push @finished, $item;
     } elsif ( $item->{completed} ) {
@@ -278,6 +283,21 @@ method queue_sort ( Str :$queuename? ) {
     @finished, @incomplete, @pending;
 
   $self->clear_averages();
+}
+
+# Sort all queues, and include only active items in results
+#
+method active_queues {
+  my %active;
+  for my $q ( $self->queue_list ) {
+    $self->queue_sort( queuename => $q );
+    $self->estimated_item_stop( queuename => $q );
+    my @items = $self->items_get( queuename => $q, recent => (7*24*3600));
+    next unless @items;
+    $active{$q} = \@items;
+  }
+  #x 'active', \%active;
+  return %active;
 }
 
 

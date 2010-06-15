@@ -51,29 +51,29 @@ sub index :Path {
 
   #warn "*** index: param = " . Dumper(\%param). " ***\n";;
   $self->linkparse($c,\%param); # Extract valid data from URL
-  $c->log->debug("*** index: linkparse done ***");
+  #$c->log->debug("*** index: linkparse done ***");
   $self->loaddata($c,\%param);  # Load relevant data
-  $c->log->debug("*** index: loaddata done ***");
+  #$c->log->debug("*** index: loaddata done ***");
 
-  $c->log->debug("*** index: trying field actions ***");
+  #$c->log->debug("*** index: trying field actions ***");
   if ( $c->stash->{fieldname} ) {
     $self->field_actions($c,\%param);
     $c->detach( $c->view("TT") );
   }
 
-  $c->log->debug("*** index: trying item actions ***");
+  #$c->log->debug("*** index: trying item actions ***");
   if ( $c->stash->{itemid} ) {
     $self->item_actions($c,\%param);
     $c->detach( $c->view("TT") );
   }
 
-  $c->log->debug("*** index: trying list actions ***");
+  #$c->log->debug("*** index: trying list actions ***");
   if ( $c->stash->{listid} ) {
     $self->list_actions($c,\%param);
     $c->detach( $c->view("TT") );
   }
 
-  $c->log->debug("*** index: trying global actions ***");
+  #$c->log->debug("*** index: trying global actions ***");
   $self->global_actions($c,\%param);
   $c->detach( $c->view("TT") );
 }
@@ -95,7 +95,7 @@ sub linkparse {
   }
 
   #use Data::Dumper;
-  $c->log->debug("*** linkparse: urlparts = " . Dumper(\%urlparts) . " ***\n");
+  #$c->log->debug("*** linkparse: urlparts = " . Dumper(\%urlparts) . " ***\n");
   $c->stash( %urlparts );
 }
 
@@ -105,7 +105,7 @@ sub loaddata {
   my($self, $c, $param) = @_;
 
   use Data::Dumper;
-  $c->log->debug("*** loaddata: param = " . Dumper($param) . " ***\n");
+  #$c->log->debug("*** loaddata: param = " . Dumper($param) . " ***\n");
   # Load list information
   my $listid;
   if ( $param->{listid} ) {
@@ -140,8 +140,8 @@ sub loaddata {
     );
   }
 
-  $c->log->debug("*** loaddata: listid    = " .($listid   ||'')." ***");
-  $c->log->debug("*** lodddata: itemid    = " .($itemid   ||'')." ***");
+  #$c->log->debug("*** loaddata: listid    = " .($listid   ||'')." ***");
+  #$c->log->debug("*** loaddata: itemid    = " .($itemid   ||'')." ***");
   $c->log->debug("*** lodddata: fieldname = " .($fieldname||'')." ***");
 }
 
@@ -153,6 +153,7 @@ sub global_actions {
 
   $c->log->debug("*** globalactions: start ***");
 
+  $param->{action} ||= '';
   if ( $param->{action} eq 'create' ) {
     $c->log->debug("*** globalactions: calling create ***");
     $c->stash(
@@ -223,6 +224,15 @@ sub list_actions {
     } 
     $c->stash(
       template       => 'project/itemedit.tt',
+    );
+  } elsif ( $param->{action} eq 'loadmanager' ) {
+    for my $job ( $c->model('Project')->loadmanager_items() ) {
+      $c->model('Loadmanager')->item_add( item => $job );
+    }
+    $c->stash(
+      active => { $c->model('Loadmanager')->active_queues },
+      no_wrapper => 1,
+      template => 'project/loadmanager.tt',
     );
   }
 }

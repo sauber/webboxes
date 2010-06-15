@@ -19,15 +19,9 @@ $proj->listid( 'UnixProjects' );
 # Read configuration
 my %F;
 for my $field ( $proj->fieldlist() ) {
-  if ( my $function = $field->{loadmanager} ) {
-    my $fieldname = $field->{fieldname};
-    for ( $function ) {
-      /label/         and ++$F{label}{$fieldname};
-      /color/         and ++$F{color}{$fieldname};
-      /queuename/     and ++$F{queue}{$fieldname};
-      /position/      and ++$F{position}{$fieldname};
-      /completed/     and ++$F{completed}{$fieldname};
-    }
+  for my $l ( qw(label color queuename position completed) ) {
+    ++$F{$l}{$field->{fieldname}}
+      if defined $field->{loadmanager} and $field->{loadmanager} eq $l;
   }
 }
 #x 'config', \%F;
@@ -36,7 +30,7 @@ for my $field ( $proj->fieldlist() ) {
 my $items = $proj->items->query();
 while ( my $item = $items->next ) {
 
-  my($cancel,$start,$stop) = $proj->itemstartstop( item => $item );
+  my($start,$stop,$cancel) = $proj->itemstartstop( item => $item );
 
   # Skip cancelled
   next if $cancel;
@@ -59,7 +53,7 @@ while ( my $item = $items->next ) {
 
   # Find queuename
   # Find queueposition
-  my $name = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{queue}};
+  my $name = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{queuename}};
   my($position) = grep { defined $_ } map $item->{$_}, keys %{$F{position}};
 
   # Find label
@@ -79,6 +73,7 @@ while ( my $item = $items->next ) {
     stop => $stop,
     completed => $completed,
     queuename => $name,
+    position => $position,
     color => $color,
   });
 }
