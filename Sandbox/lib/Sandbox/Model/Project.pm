@@ -70,6 +70,7 @@ method alllists {
   for my $dbn ( grep { s/^_LOT_// } $self->dbnames() ) {
     next unless $dbn;
     $self->listid( $dbn );
+    next unless $self->schema->query->next;
     #warn "*** alllists: dbn=$dbn, self=$self\n";
     # The shortname and the long name
     push @list, {
@@ -225,13 +226,25 @@ method filterbyfields {
 
 # All values for a given field
 #
-method fieldvalues ( Str :$fieldname ) {
+method _old_fieldvalues ( Str :$fieldname ) {
   my %values;
   my $result = $self->items->query({});
   while ( my $item = $result->next ) {
     ++$values{$item->{$fieldname}} if $item->{$fieldname};
   }
   return sort keys %values;
+}
+
+# using mapreduce - woohoo!
+#
+method fieldvalues ( Str :$fieldname ) {
+  my $m = "function() { emit(this.$fieldname, 1); }";
+  my $r = 'function(k,vals) { return 1; }';
+  my $cmd = Tie::IxHash->new("mapreduce" => "items", "map" => $m, "reduce" => $r, out => "distinct_$fieldname");
+  my $result = $self->dbh->run_command($cmd);
+  my @values = map $_->{_id}, 
+    $self->dbh()->get_collection("distinct_$fieldname")->query->all;
+  return @values;
 }
 
 
@@ -274,7 +287,7 @@ method list_summary(
   while ( my $r = $allitems->next ) {
     next unless $self->item_match( item=>$r, keyword=>$searchq );
     next if not $deleteq and $r->{_deleted};
-    my $groupname = $groupby ? $r->{$groupby} : '';
+    my $groupname = ( $groupby and $r->{$groupby} ) ? $r->{$groupby} : '';
     push @{ $list{$groupname} }, {
       itemid => $r->{_id}{value},
       _deleted => $r->{_deleted},
@@ -475,8 +488,9 @@ method item_set ( Str :$itemid, HashRef :$item ) {
 method itemstartstop ( HashRef :$item ) {
   my %T;
   my $log = $item->{auditlog};
+  my $sec;
   for my $entry ( @$log ) {
-    my $sec = $entry->{time};
+    $sec = $entry->{time};
     # Start/stop time
     $T{defined} ||= $sec;
     if ( $entry->{message} =~ /State \w+ to: (\S+)/ ) {
@@ -493,10 +507,15 @@ method itemstartstop ( HashRef :$item ) {
   }
   $T{started} ||= ( $T{init}   || $T{closed}   );
   $T{stopped} ||= ( $T{closed} || $T{canceled} );
+
+  # There are cases of items being deleted without properly stoped.
+  # This is same as canceled.
+  $T{canceled} = $sec if $item->{_deleted} and not $T{stopped};
+
   return (
-    $T{canceled},
     $T{started},
     $T{stopped},
+    $T{canceled},
   );
 }
 
@@ -590,6 +609,64 @@ sub cycle_datatype { 'scalar' }
 sub cycle_sorttype { 'number' }
 sub cycle_sortcode { shift || 5 }
 
+
+
+########################################################################
+### Project Items
+########################################################################
+
+# Generate items that are suitable as Load::Manager objects
+#
+method loadmanager_items {
+  # Identify which fields to use for load manager
+  my %F;
+  for my $field ( $self->fieldlist() ) {
+    for my $l ( qw(label color queuename position completed) ) {
+      ++$F{$l}{$field->{fieldname}}
+        if defined $field->{loadmanager} and $field->{loadmanager} eq $l;
+    } 
+  } 
+
+  my $items = $self->items->query();
+  my @jobs;
+  while ( my $item = $items->next ) {
+    my($start,$stop,$cancel) = $self->itemstartstop( item => $item );
+    next if $cancel;
+
+    my $completed;
+    unless ( $stop ) {
+      ($completed) = map { $_/100 }
+                     grep s/^.*?(\d+)\%.*/$1/,
+                     grep { defined $_ }
+                     map $item->{$_},
+                     keys %{$F{completed}};
+    }
+
+    # Find queuename  # Find queueposition
+    my $name = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{queuename}};
+    my($position) = grep { defined $_ } map $item->{$_}, keys %{$F{position}};
+
+    # Find label
+    # Find color
+    my $label = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{label}};
+    my $color = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{color}};
+
+    # Find id
+    my $id = $item->{_id}{value};
+
+    push @jobs, {
+      id => $id,
+      label => $label,
+      start => $start,
+      stop => $stop,
+      completed => $completed,
+      queuename => $name,
+      position => $name,
+      color => $color,
+    }
+  }
+  return @jobs;
+}
 
 ########################################################################
 ### Change Log
