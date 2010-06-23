@@ -289,12 +289,15 @@ method queue_sort ( Str :$queuename? ) {
 #
 method active_queues {
   my %active;
+  my $limit;
   for my $q ( $self->queue_list ) {
     $self->queue_sort( queuename => $q );
     $self->estimated_item_stop( queuename => $q );
     my @items = $self->items_get( queuename => $q, recent => (7*24*3600));
     next unless @items;
-    $active{$q} = \@items;
+    my($group,$queue) = split /, /, $q;
+    $active{$group}{$queue} = \@items;
+    #last if ++$limit >= 6;
   }
   #x 'active', \%active;
   return %active;

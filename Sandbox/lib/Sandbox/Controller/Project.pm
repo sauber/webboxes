@@ -226,6 +226,7 @@ sub list_actions {
       template       => 'project/itemedit.tt',
     );
   } elsif ( $param->{action} eq 'loadmanager' ) {
+    #for my $job ( $c->model('Project')->loadmanager_items( category => 'country') ) {
     for my $job ( $c->model('Project')->loadmanager_items() ) {
       $c->model('Loadmanager')->item_add( item => $job );
     }

@@ -17,6 +17,7 @@ $_->{fieldname} = $_->{field}, delete $_->{field}
 # Insert some loadmanager data
 for my $f ( @{ $data->{config}{fieldlist} } ) {
   $f->{loadmanager} = 'label'     if $f->{fieldname} eq 'Title';
+  $f->{loadmanager} = 'label'     if $f->{fieldname} eq 'PipelineID';
   $f->{loadmanager} = 'queuename' if $f->{fieldname} eq 'Engineer';
   $f->{loadmanager} = 'queuename' if $f->{fieldname} eq 'Atn';
   $f->{loadmanager} = 'completed' if $f->{fieldname} eq 'Status';

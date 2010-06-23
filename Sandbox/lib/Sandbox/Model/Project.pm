@@ -617,7 +617,7 @@ sub cycle_sortcode { shift || 5 }
 
 # Generate items that are suitable as Load::Manager objects
 #
-method loadmanager_items {
+method loadmanager_items ( Str :$category? ) {
   # Identify which fields to use for load manager
   my %F;
   for my $field ( $self->fieldlist() ) {
@@ -643,7 +643,14 @@ method loadmanager_items {
     }
 
     # Find queuename  # Find queueposition
-    my $name = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{queuename}};
+    my $name;
+    if ( $category ) {
+      $name = $self->loadmanager_items_by( category=>$category, item=> $item );
+    } else {
+      $name = join ', ', grep { defined $_ } map $item->{$_}, keys %{$F{queuename}};
+    }
+
+    # Find queueposition
     my($position) = grep { defined $_ } map $item->{$_}, keys %{$F{position}};
 
     # Find label
@@ -663,9 +670,20 @@ method loadmanager_items {
       queuename => $name,
       position => $name,
       color => $color,
-    }
+    };
   }
   return @jobs;
+}
+
+method loadmanager_items_by ( Str :$category, Ref :$item )  {
+  my $name = 'Other';
+  if ( $category eq 'country' ) {
+    $name = 'India' if $item->{Title} =~ /\bIN\b/;
+    $name = 'Japan' if $item->{Title} =~ /\bJP\b/;
+    $name = 'Hong Kong' if $item->{Title} =~ /\bHK\b/;
+    $name = 'Singapore' if $item->{Title} =~ /\bSG\b/;
+  }
+  return $name;
 }
 
 ########################################################################
