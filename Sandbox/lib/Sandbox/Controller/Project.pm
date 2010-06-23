@@ -151,11 +151,11 @@ sub loaddata {
 sub global_actions {
   my ( $self, $c, $param ) = @_;
 
-  $c->log->debug("*** globalactions: start ***");
+  #$c->log->debug("*** globalactions: start ***");
 
   $param->{action} ||= '';
   if ( $param->{action} eq 'create' ) {
-    $c->log->debug("*** globalactions: calling create ***");
+    #$c->log->debug("*** globalactions: calling create ***");
     $c->stash(
       template  => 'project/update.tt',
       fieldlist => $c->model('Project')->config_example(),
@@ -165,7 +165,7 @@ sub global_actions {
     my $listid   = $listname;
     $listid =~ s/\W+//g; # Remove odd chars
     my $fieldlist = $c->request->params->{fieldlist};
-    $c->log->debug("*** globalactions: create new database $listid ***");
+    #$c->log->debug("*** globalactions: create new database $listid ***");
     $c->model('Project')->listid( $listid );
     my $saved = $c->model('Project')->saveconfig(
       fieldlist => $fieldlist, listname => $listname
@@ -176,13 +176,13 @@ sub global_actions {
       template => 'project/list.tt',
     );
   } else {
-    $c->log->debug("*** globalactions: calling list ***");
+    #$c->log->debug("*** globalactions: calling list ***");
     $c->stash(
       lists => [ $c->model('Project')->alllists ],
       template => 'project/list.tt',
     );
   }
-  $c->log->debug("*** globalactions: end ***");
+  #$c->log->debug("*** globalactions: end ***");
 }
 
 # Various operations on one list

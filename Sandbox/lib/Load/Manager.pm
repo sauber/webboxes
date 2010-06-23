@@ -296,6 +296,7 @@ method active_queues {
     my @items = $self->items_get( queuename => $q, recent => (7*24*3600));
     next unless @items;
     my($group,$queue) = split /, /, $q;
+    $queue ||= '';
     $active{$group}{$queue} = \@items;
     #last if ++$limit >= 6;
   }
