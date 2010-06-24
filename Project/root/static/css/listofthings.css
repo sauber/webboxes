@@ -1,0 +1,109 @@
+/* #top
+{
+  padding: .5em;
+  background-color: #ddd;
+  border-bottom: 1px solid gray;
+} */
+
+#top h2
+{
+  padding: 0;
+  margin: 0;
+}
+
+table.summary {
+  width: 100%;
+  border-collapse:collapse;
+  font-size:80%;
+  font-family: "trebuchet ms", "lucidia grande", verdana, arial, sans-serif;
+  text-align:left;
+  clear: both;
+}
+
+tr.summary {
+  background: #fff;
+  hover:expression(this.onmouseover=new Function("this.style.background='#feffee';"),this.onmouseout=new Function("this.style.background='#fff';"));
+}
+
+tr.summarydel {
+  font-style: italic;
+  background: #ddd;
+  hover:expression(this.onmouseover=new Function("this.style.background='#feffee';"),this.onmouseout=new Function("this.style.background='#ddd';"));
+}
+
+th.summary {
+  border-bottom: 3px solid #000;
+  padding-right: 4px;
+  border-right: 1px dotted gray;
+}
+
+td.summary {
+  /* border-bottom: 1px dotted gray; */
+  border-right: 1px dotted gray;
+}
+
+td.expanded {
+  /* display: none; */
+  border-bottom: 1px dotted gray;
+  /* border: 1px solid gray; */
+}
+
+tr.groupby {
+  color: #00f;
+  border-right: 1px dotted gray;
+}
+
+table.legend {
+  border-collapse:collapse;
+  font-size:75%;
+  font-family: "trebuchet ms", "lucidia grande", verdana, arial, sans-serif;
+  text-align:left;
+  clear: both;
+}
+
+th.legend {
+  line-height: 90%;
+  text-align: right;
+}
+
+p.legend {
+  line-height: 90%;
+}
+
+caption.legend {
+  text-align: left;
+}
+
+table.edititem {
+  border-collapse:collapse;
+  font-family: "trebuchet ms", "lucidia grande", verdana, arial, sans-serif;
+  font-size:85%;
+  border: 1px solid #ffa20c;
+}
+
+th.edititem {
+  border: 1px solid #ffa20c;
+  background: #fee3ad;
+}
+
+td.edititem {
+  /* border-bottom: 1px solid gray; */
+  padding: 2px;
+  background: #eee;
+}
+
+input.edititem {
+  font-family: "trebuchet ms", "lucidia grande", verdana, arial, sans-serif;
+  font-size:85%;
+}
+
+select.edititem {
+  font-family: "trebuchet ms", "lucidia grande", verdana, arial, sans-serif;
+  font-size:85%;
+}
+
+textarea.edititem {
+  font-family: "trebuchet ms", "lucidia grande", verdana, arial, sans-serif;
+  font-size:85%;
+}
+
