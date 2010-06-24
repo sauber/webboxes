@@ -17,7 +17,7 @@ body {
 </style> 
  
 <script type="text/javascript" src="/static/js/jquery-1.4.2.min.js"></script>
-<script type="text/javascript" src="/static/js/jquery-ui-1.8.custom.min.js"></script>
+<script type="text/javascript" src="/static/js/jquery-ui-1.8.2.custom.min.js"></script>
 
  
 <!--there is no custom header content for this example--> 
@@ -115,11 +115,15 @@ body {
 </style> 
  
 <div id="timeline"> 
+[% SET ulidlist = [] %]
 [% FOREACH groupname IN active.keys.sort -%]
   <table><tr><th>[% groupname %]</th><td><img src="/static/images/timeline.png"></td></tr>
   [% FOREACH queuename IN active.$groupname.keys.sort -%]
   <tr><td><p>[% queuename %]</p></td><td>
-  <ul class="task" id="[% listid %] [% queuename %]"> 
+  [% SET elem = [ listid, groupname, queuename ] %]
+  [% SET ulid = '#' _ elem.join('_') %]
+  [% ulidlist.push( ulid ) %]
+  <ul class="task" id="[% listid %]_[% groupname %]_[% queuename %]"> 
   [% FOREACH project IN active.$groupname.$queuename -%]
     [%# Number of Days %]
     [% SET span = project.etaduration / 86400 %]
@@ -135,8 +139,17 @@ body {
 [% END %]
 </div> 
 
-[%# USE Dumper %]
+[% USE Dumper %]
 [%# Dumper.dump( active ) %]
+[% Dumper.dump( ulidlist ) %]
+
+<script type="text/javascript">
+  $(function() {
+    $("[% ulidlist.join(', ') %]").sortable({
+      connectWith: '.connectedSortable'
+    }).disableSelection();
+  });
+</script>
 
 </body>
 </html>
