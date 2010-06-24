@@ -1,0 +1,24 @@
+[% BLOCK show %]
+[% item.$fieldname | html %]
+[% END %]
+
+[% BLOCK edit %]
+<select name="[% fieldname %]" class="edititem">
+<option>Please select...</option>
+[% FOREACH option IN field.choices %]
+[% IF option == item.$fieldname %]
+<option selected>[% option %]</option>
+[% ELSE %]
+<option>[% option %]</option>
+[% END %]
+[% END %]
+</select>
+[% END %]
+
+[% SET fieldname = field.fieldname %]
+[% IF context == 'edit' %]
+  [% INCLUDE edit %]
+  [% RETURN %]
+[% END %]
+
+[% INCLUDE show %]

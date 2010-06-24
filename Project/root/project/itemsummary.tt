@@ -1,0 +1,31 @@
+[% SET context = 'summary' %]
+
+[%# Summary line %]
+<tr>
+[% FOREACH field IN fieldlist %]
+  [% fieldname = field.fieldname %]
+  [% IF loop.first %]
+    [% urlpart = [ 'project' 'action' 'ajaxexpand' 'listid' listid 'itemid' item.itemid ] %]
+    [% url = base _ urlpart.join('/') %]
+    <td class="summary">
+    [% c.prototype.link_to_remote( item.$fieldname, {
+        'update' => item.itemid,
+        'url' => url,
+        'evalScripts' => 'true',
+        'loaded' => "new Effect.toggle('" _ item.itemid _ "', 'blind', {duration:0.2} )"
+      } )
+    %]
+    </td>
+  [% ELSE %]
+    <td class="summary">[% INCLUDE project/renderfield %]</td>
+  [% END %]
+[% END %]
+<td class="summary">
+<a href="[% INCLUDE project/linkmake itemid=item.itemid action='view' fieldname='' %]">view</a>
+<a href="[% INCLUDE project/linkmake itemid=item.itemid action='edit' fieldname='' %]">edit</a>
+</td>
+</tr>
+
+[%# Expanded line %]
+[%# style="display:none" %]
+<tr><td colspan="[% 1 + fieldlist.size %]" class="expanded"><span id="[% item.itemid %]" style="display:none"></span></td></tr>

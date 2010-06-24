@@ -1,0 +1,37 @@
+[% BLOCK show %]
+[% markdown.markdown(item.$fieldname) %]
+[% END %]
+
+[% BLOCK edit %]
+[% SET rows = field.size.split('x').1 %]
+[% SET cols = field.size.split('x').0 %]
+<textarea name="[% fieldname %]" rows="[% rows %]" cols="[% cols %]" style="edititem">[% item.$fieldname | html %]</textarea>
+[% END %]
+
+[% BLOCK ajax %]
+  [% idtag = item.itemid _ ' ' _ fieldname %]
+  [% urlpart = [ 'project' 'action' 'ajaxdata' 'listid' listid 'itemid' item.itemid 'fieldname' fieldname ] %]
+  [% url = base _ urlpart.join('/') %]
+  <span id="[% idtag %]" class="summary">[% item.$fieldname or '<em>edit</em>' %]</span>
+  [%
+     c.prototype.in_place_editor( idtag, {
+       'load_text_url' => url,
+       'url' => url,
+       'rows' => rows,
+       'cols' => cols,
+     } )
+  %]
+[% END %]
+
+[% SET fieldname = field.fieldname %]
+[% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
+  [% INCLUDE ajax %]
+  [% RETURN %]
+[% END %]
+
+[% IF context == 'edit' %]
+  [% INCLUDE edit %]
+  [% RETURN %]
+[% END %]
+
+[% INCLUDE show %]

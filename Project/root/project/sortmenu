@@ -1,0 +1,34 @@
+[%# <div style="float:right;"> %]
+<form name="sort">
+Search: <input name="searchq" value="[% searchq %]">
+
+Deleted: <input name="deleteq" type="checkbox" [% "Checked" IF deleteq %]>
+
+Order By: <select name="orderselect" OnChange="location.href=sort.orderselect.options[selectedIndex].value">
+<option>Please Select ...</option>
+<option value="[% INCLUDE project/linkmake orderby="" %]">None</option>
+[% FOREACH option IN orderbyfields %]
+<option value="[% INCLUDE project/linkmake orderby=option %]"[% " selected" IF option == orderby %]>[% option %]</option>
+[% END %]
+</select>
+
+Group By: <select name="groupselect" OnChange="location.href=sort.groupselect.options[selectedIndex].value">
+<option>Please Select ...</option>
+<option value="[% INCLUDE project/linkmake groupby="" %]">None</option>
+[% FOREACH option IN groupbyfields %]
+<option value="[% INCLUDE project/linkmake groupby=option %]"[% " selected" IF option == groupby %]>[% option %]</option>
+[% END %]
+</select>
+
+Filter By: <select name="filterselect" OnChange="location.href=sort.filterselect.options[selectedIndex].value">
+<option>Please Select ...</option>
+<option value="[% INCLUDE project/linkmake filterfield="" filtervalue="" %]">None</option>
+[% FOREACH option IN filterbyfields %]
+<option value="[% INCLUDE project/linkmake filterfield=option.fieldname filtervalue=option.value %]"[% " selected" IF option.fieldname == filterfield and option.value == filtervalue %]>[% option.fieldname %]=[% option.value %]</option>
+[% END %]
+</select>
+
+</form>
+[%# USE Dumper %]
+[%# Dumper.dump( orderbyfields ) %]
+[%# </div> %]

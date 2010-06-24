@@ -1,0 +1,21 @@
+<html>
+<head><title>Existing Project Collections</title></head>
+<body>
+<h1>Welcome to Projects</h1>
+<h2>Powered By ListOfThings</h2>
+<h3>Choose Existing Project Collection</h3>
+<ul>
+[% FOREACH list IN lists %]
+<li>
+  <a href="[% c.uri_for('action', 'summary', 'listid',   list.listid) %]">summary</a>
+  <a href="[% c.uri_for('action', 'expanded', 'listid',   list.listid) %]">expanded</a>
+  <a href="[% c.uri_for('action', 'editconf', 'listid', list.listid) %]">config</a>
+  <a href="[% c.uri_for('action', 'delete', 'listid', list.listid) %]">delete</a>
+  <a href="[% c.uri_for('action', 'loadmanager', 'listid', list.listid) %]">loadmanager</a>
+  - [% list.listname | html %]
+</li>
+[% END %]
+</ul>
+<a href="[% c.uri_for('action','create') %]">Create New Project Collection</a>
+</body>
+</html>

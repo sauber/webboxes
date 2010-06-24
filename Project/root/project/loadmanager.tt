@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"> 
+<html> 
+<head> 
+<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+<title>Load Manager</title> 
+ 
+<style type="text/css"> 
+/*margin and padding on body element
+  can introduce errors in determining
+  element position and are not recommended;
+  we turn them off as a foundation for YUI
+  CSS treatments. */
+body {
+	margin:0;
+	padding:0;
+}
+</style> 
+ 
+<script type="text/javascript" src="/static/js/jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="/static/js/jquery-ui-1.8.custom.min.js"></script>
+
+ 
+<!--there is no custom header content for this example--> 
+ 
+</head> 
+ 
+<body>
+ 
+<h1>Project Timeline</h1> 
+ 
+<!--BEGIN SOURCE CODE FOR EXAMPLE =============================== --> 
+ 
+<style type="text/css" media="screen"> 
+    #timeline {
+        border: 1px solid black;
+        padding: 10px;
+        /* margin: 10px; */
+        /* zoom: 1; */
+        overflow: auto;
+        width: 6000px;
+    }
+    #timeline:after { display: block; clear: both; visibility: hidden; content: '.'; height: 0;}
+    #timeline ul {
+        border: 1px solid #CDCDCD;
+        margin: 2px;
+        /* width: 200px; */
+        /* height: 300px; */
+        /* float: left; */
+        padding: 0;
+        /* zoom: 1; */
+        /* position: relative; */
+        /* white-space: nowrap; */
+    }
+    #timeline ul li {
+        /* background-image: none; */
+        /* list-style-type: none; */
+        padding-left: 2px;
+        padding-right: 2px;
+        /* padding-left: 7px; */
+        /* padding: 2px; */
+        margin-right: 7px;
+        cursor: move;
+        /* zoom: 1; */
+        /* position: relative; */
+        /* white-space: normal; */
+    }
+    /* #timeline ul li.list1 { */
+    /*     background-color: #8DD5E7; */
+    /*     border:1px solid #004C6D; */
+    /* } */
+    #timeline ul li.task {
+        background-color: #EDFF9F;
+        border:1px solid black;
+        float: left;
+        overflow: hidden;
+        /* display: inline; */
+        height: 42px;
+        max-height: 42px;
+        font-size: 8pt;
+    }
+    #timeline ul li.clear {
+       clear: both;
+       display: block;
+    }
+    #timeline ul li.critical {
+        border:5px solid #004C6D;
+    }
+    #timeline ul li.important {
+        border:4px solid #004C6D;
+    }
+    #timeline ul li.high {
+        border:3px solid #004C6D;
+    }
+    #timeline ul li.bau {
+        border:2px solid #004C6D;
+    }
+    #timeline ul li.low {
+        border:1px solid #004C6D;
+    }
+    #timeline ul li.Ficc {
+        background-color: #9999FF;
+    }
+    #timeline ul li.Equity {
+        background-color: #FF9999;
+    }
+    #timeline ul li.Other {
+        background-color: #99FF99;
+    }
+    #timeline ul li.GMOT {
+        background-color: #CCCCCC;
+    }
+    #timeline ul li.ETnD {
+        background-color: #FF99FF;
+    }
+</style> 
+ 
+<div id="timeline"> 
+[% FOREACH groupname IN active.keys.sort -%]
+  <table><tr><th>[% groupname %]</th><td><img src="/static/images/timeline.png"></td></tr>
+  [% FOREACH queuename IN active.$groupname.keys.sort -%]
+  <tr><td><p>[% queuename %]</p></td><td>
+  <ul class="task" id="[% listid %] [% queuename %]"> 
+  [% FOREACH project IN active.$groupname.$queuename -%]
+    [%# Number of Days %]
+    [% SET span = project.etaduration / 86400 %]
+    [%# Each periode is 36 pixels - should be 7 days %]
+    [% SET span = span * 36 / 7 %]
+    
+    <li id ="[% project.id %]" class="task [% project.color %]" style="width:[% span %]px; max-width:[% span %]px;">[% project.label %]</li>
+  [% END %]
+  <li class="clear"></li>
+  </ul></td></tr>
+  [% END %]
+  </table>
+[% END %]
+</div> 
+
+[%# USE Dumper %]
+[%# Dumper.dump( active ) %]
+
+</body>
+</html>

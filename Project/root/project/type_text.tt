@@ -1,0 +1,34 @@
+[% BLOCK show %]
+[% item.$fieldname | html %]
+[% END %]
+
+[% BLOCK edit %]
+<input name="[% fieldname %]" size="[% field.size IF field.size > 15 %]" value="[% item.$fieldname | html %]" class="edititem">
+[% END %]
+
+[% BLOCK ajax %]
+  [% idtag = item.itemid _ ' ' _ fieldname %]
+  [% urlpart = [ 'project' 'action' 'ajaxdata' 'listid' listid 'itemid' item.itemid 'fieldname' fieldname ] %]
+  [% url = base _ urlpart.join('/') %]
+  <span id="[% idtag %]" class="summary">[% item.$fieldname  or '<em>edit</em>' %]</span>
+  [%
+     c.prototype.in_place_editor( idtag, {
+       'load_text_url' => url,
+       'url' => url,
+       'rows' => 1,
+     } )
+  %]
+[% END %]
+
+[% SET fieldname = field.fieldname %]
+[% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
+  [% INCLUDE ajax %]
+  [% RETURN %]
+[% END %]
+
+[% IF context == 'edit' %]
+  [% INCLUDE edit %]
+  [% RETURN %]
+[% END %]
+
+[% INCLUDE show %]

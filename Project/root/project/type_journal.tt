@@ -1,0 +1,62 @@
+[% BLOCK showlast %]
+[% item.$fieldname.last | html %]
+[% END %]
+
+[% BLOCK show5last %]
+[% SET to = item.$fieldname.max %]
+[% SET from = to - 4 %]
+[% SET from = 0 IF from < 0 %]
+[% FOREACH n IN [ from  .. to ] %]
+[% item.$fieldname.$n %]<br />
+[% END %]
+[% c.prototype.form_remote_tag( {
+     update => item.itemid,
+     url => base,
+     evalScripts=>'true',
+  } )
+%]
+[% END %]
+
+[% BLOCK edit %]
+<input name="[% fieldname %]" size="[% field.fieldsize %]" value="[% item.$fieldname | html %]" class="edititem">
+[% END %]
+
+[% BLOCK ajax %]
+  [% idtag = item.itemid _ ' ' _ item.fieldname %]
+  [% urlpart = [ 'project' 'ajax' listname 'field' id item.fieldname ] %]
+  [% url = base _ urlpart.join('/') %]
+  <span id="[% idtag %]" class="summary">
+  [% IF item.value %]
+    [% item.value %]
+  [% ELSE %]
+    <em>edit</em>
+  [% END %]
+  </span>
+  [%
+     c.prototype.in_place_editor( idtag, {
+       'load_text_url' => url,
+       'url' => url,
+       'rows' => 1,
+     } )
+  %]
+[% END %]
+
+[% SET fieldname = field.fieldname %]
+[% IF ( field.editsummary and context == 'summary' ) or ( field.editexpanded and conext == 'expanded' ) %]
+  [% INCLUDE ajax %]
+  [% RETURN %]
+[% END %]
+
+[% IF context == 'edit' %]
+  [% INCLUDE edit %]
+  [% RETURN %]
+[% END %]
+
+[% IF context == 'summary' %]
+[% INCLUDE showlast %]
+[% ELSIF context == 'expanded' %]
+[% INCLUDE show5last %]
+[% ELSIF context == 'edit' or context == 'show' %]
+[% INCLUDE show20last %]
+[% END %]
+

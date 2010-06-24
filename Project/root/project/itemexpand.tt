@@ -1,0 +1,14 @@
+<table class="summary>
+[% SET context = 'expanded' %]
+[% FOREACH field IN fieldlist %]
+  [% SET fieldname = field.fieldname %]
+  <tr valign="top">
+    <th>[% field.type %] - [% fieldname %]<th>
+    [% IF field.editexpanded %]
+    <td>edit [% item.$fieldname | html %]<td>
+    [% ELSE %]
+    <td>[% INCLUDE renderfield %]<td>
+    [% END %]
+  </tr>
+[% END %]
+</table>

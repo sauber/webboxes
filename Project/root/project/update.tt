@@ -1,0 +1,40 @@
+<h1>[% projname %]</h1>
+<p>Edit List Definition</p>
+
+[% SET ln = [ 'listname', projname ] IF projname %]
+<form method=post action="[% c.uri_for('action','updateconf', ln.0, ln.1 ) %]">
+<table halign=left>
+<tr valign=top>
+  <th>Name:</th>
+  <td><input name="listname" value="[% listname or "Example List" %]"></td>
+  <td><tt>Name of List</tt></td>
+</tr>
+<tr valign=top>
+  <th>Config:</th>
+  <td><textarea name=fieldlist cols=50 rows=34>[% fieldlist %]</textarea></td>
+  <td><pre>
+Fieldlist Attributes:
+
+  fieldname: &lt;Field name&gt;
+  type: &lt;text|textarea|select|checkboxgroup|templateselect&gt;
+  isindex: 'true'      # Uniq index field for list
+  showsummary: 'true'  # Show field in summary line
+  editsummary: 'true'  # Edit field in summary line
+  showexpanded: 'true' # Show field in expanded area
+  editexpanded: 'true' # Edit field in expanded ares
+  orderby: 'true'      # Field can be used for sorting
+  groupby: 'true'      # Field can be used for grouping
+  filterby: 'true'     # Field can be used for filtering
+  size: W or WxH       # numbers or chars visible 
+  choices:             # Valid input choices
+  loadmananager: &lt;label|color|completed|queuename|position&gt;
+</pre></td>
+</tr>
+<tr><th></th><td>
+  <input type=submit value="Save Configuration">
+  <input type=reset>
+</td><td><td></tr>
+</table>
+</form>
+
+<a href="[% base _ 'project' %]">All Lists</a>
