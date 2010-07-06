@@ -146,7 +146,7 @@ body {
 <script type="text/javascript">
   $(function() {
     $("[% ulidlist.join(', ') %]").sortable({
-      connectWith: '.connectedSortable'
+      connectWith: '.task'
     }).disableSelection();
   });
 </script>
