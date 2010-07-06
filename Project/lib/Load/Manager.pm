@@ -28,6 +28,7 @@ sub x {
 #
 method item_add ( HashRef :$item ) {
   my $queuename = $item->{queuename} || '';
+  $queuename =~ s/\W//g;
   push @{ $self->{queue}{$queuename} }, $item;
   $self->clear_averages();
 }
