@@ -144,9 +144,23 @@ body {
 [% Dumper.dump( ulidlist ) %]
 
 <script type="text/javascript">
+  // The id of item moved: ui.item.attr("id")
+  // The id of destination list: ui.item.parent().attr("id")
   $(function() {
     $("[% ulidlist.join(', ') %]").sortable({
-      connectWith: '.task'
+      opacity: 0.6,
+      connectWith: '.task',
+      update: function(event, ui) {
+        var item = ui.item;
+        var itemid = item.attr("id");
+        var parentid = item.parent().attr("id");
+        var nextid = item.attr("nextSibling").id;
+        var previd = item.attr("previousSibling").id;
+        $.ajax({
+          type: 'POST',
+          url: '/project/ajax/' + itemid + '/' + parentid + '/' + previd + '/' + nextid
+        });
+      }
     }).disableSelection();
   });
 </script>
