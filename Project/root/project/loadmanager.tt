@@ -144,8 +144,6 @@ body {
 [% Dumper.dump( ulidlist ) %]
 
 <script type="text/javascript">
-  // The id of item moved: ui.item.attr("id")
-  // The id of destination list: ui.item.parent().attr("id")
   $(function() {
     $("[% ulidlist.join(', ') %]").sortable({
       opacity: 0.6,
