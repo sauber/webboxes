@@ -156,9 +156,12 @@ body {
         var parentid = item.parent().attr("id");
         var nextid = item.attr("nextSibling").id;
         var previd = item.attr("previousSibling").id;
+        if ( ui.sender ) {
+          var sender = ui.sender.attr("id");
+        }
         $.ajax({
           type: 'POST',
-          url: '/project/action/drag_end?dragid=' + itemid + '&parentid=' + parentid + '&previd=' + previd + '&nextid=' + nextid
+          url: '/project/action/drag_end?dragid=' + itemid + '&parentid=' + parentid + '&previd=' + previd + '&nextid=' + nextid + "&sender=" + sender
         });
       }
     }).disableSelection();
