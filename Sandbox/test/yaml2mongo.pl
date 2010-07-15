@@ -37,10 +37,10 @@ push @{ $data->{config}{fieldlist} },
 
 # Open connection to Mongo DB
 our $conn = MongoDB::Connection->new;
-our $db   = $conn->get_database("_LOT_UnixProjects");
+our $db   = $conn->get_database("ListOfThings");
 
 # Store the config
-our $config = $db->get_collection("config");
+our $config = $db->get_collection("UnixProjects.config");
 $config->drop;
 $config->insert( $data->{config} );
 
@@ -66,7 +66,7 @@ for my $project ( keys %$log ) {
 }
 
 # Save all projects to mongo
-our $projects = $db->get_collection("items");
+our $projects = $db->get_collection("UnixProjects.items");
 $projects->drop;
 my $proj = $data->{data};
 while ( my ( $item, $value ) = each %$proj ) {

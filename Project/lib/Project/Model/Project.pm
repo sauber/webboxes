@@ -41,7 +41,8 @@ has 'items' => (
 
 sub _build_items {
   my ($self) = @_;
-  $self->dbh()->get_collection('items');
+  #$self->dbh()->get_collection('items');
+  $self->collection($self->listid . '.items');
 }
 
 has 'schema' => (
@@ -52,29 +53,32 @@ has 'schema' => (
 
 sub _build_schema {
   my ($self) = @_;
-  $self->dbh()->get_collection('config');
+  #$self->dbh()->get_collection('config');
+  $self->collection($self->listid . '.config');
 }
 
 # If listid changes, the unset all db values
 method reset {
-  $self->clear_dbname;
+  #$self->clear_dbname;
   $self->clear_schema;
   $self->clear_items;
-  $self->clear_dbh;
+  #$self->clear_dbh;
 }
 
 # Get a list of all ListOfThings tables
 #
 method alllists {
   my @list;
-  for my $dbn ( grep { s/^_LOT_// } $self->dbnames() ) {
-    next unless $dbn;
-    $self->listid( $dbn );
+  #for my $dbn ( grep { s/^_LOT_// } $self->dbnames() ) {
+  for my $coll ( $self->collection_names() ) {
+    next unless $coll;
+    next unless $coll =~ s/\.config//;
+    $self->listid( $coll );
     next unless $self->schema->query->next;
-    #warn "*** alllists: dbn=$dbn, self=$self\n";
+    warn "*** alllists: coll=$coll, self=$self\n";
     # The shortname and the long name
     push @list, {
-      listid   => $dbn,
+      listid   => $coll,
       listname => $self->schema->query->next->{name} || "unknown",
     };
   }
