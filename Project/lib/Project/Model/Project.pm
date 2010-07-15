@@ -10,6 +10,12 @@ sub x {
  warn Data::Dumper->Dump([$_[1]], ["*** dump $_[0]"]);
 }
 
+# Layout:
+# 
+# connection - dbh        - conn
+# database   - database   - ListOfThings
+# collection - table      - listname_items / listname_config
+# Document   - record/row - listitem
 
 ########################################################################
 ### Database Connection
@@ -22,16 +28,16 @@ before 'listid' => sub {
   $self->reset();
 };
 
-has 'dbname'   => (
-  isa => 'Str',
-  is => 'rw',
-  lazy_build => 1,
-);
+#has 'dbname'   => (
+#  isa => 'Str',
+#  is => 'rw',
+#  lazy_build => 1,
+#);
 
-sub _build_dbname {
-  my ($self) = @_;
-  return '_LOT_' . $self->listid;
-}
+#sub _build_dbname {
+#  my ($self) = @_;
+#  return '_LOT_' . $self->listid;
+#}
 
 has 'items' => (
   isa => 'MongoDB::Collection',
@@ -42,7 +48,7 @@ has 'items' => (
 sub _build_items {
   my ($self) = @_;
   #$self->dbh()->get_collection('items');
-  $self->collection($self->listid . '.items');
+  $self->collection($self->listid . '_items');
 }
 
 has 'schema' => (
@@ -54,7 +60,9 @@ has 'schema' => (
 sub _build_schema {
   my ($self) = @_;
   #$self->dbh()->get_collection('config');
-  $self->collection($self->listid . '.config');
+  my $collname = $self->listid . '_config';
+  warn "*** Schema Collection Name: $collname ***\n";
+  $self->collection($self->listid . '_config');
 }
 
 # If listid changes, the unset all db values
@@ -70,11 +78,13 @@ method reset {
 method alllists {
   my @list;
   #for my $dbn ( grep { s/^_LOT_// } $self->dbnames() ) {
+  warn "*** Looking for collections ***\n";
   for my $coll ( $self->collection_names() ) {
-    next unless $coll;
-    next unless $coll =~ s/\.config//;
+    warn "*** Found collection: $coll ***\n";
+    next unless $coll and $coll =~ s/\_config$//;
     $self->listid( $coll );
-    next unless $self->schema->query->next;
+    #next unless $self->schema->query->next;
+    x "$coll schema", $self->schema->query;
     warn "*** alllists: coll=$coll, self=$self\n";
     # The shortname and the long name
     push @list, {
@@ -82,6 +92,7 @@ method alllists {
       listname => $self->schema->query->next->{name} || "unknown",
     };
   }
+  x "alllists", \@list;
   return @list;
 }
 
@@ -244,10 +255,12 @@ method _old_fieldvalues ( Str :$fieldname ) {
 method fieldvalues ( Str :$fieldname ) {
   my $m = "function() { emit(this.$fieldname, 1); }";
   my $r = 'function(k,vals) { return 1; }';
-  my $cmd = Tie::IxHash->new("mapreduce" => "items", "map" => $m, "reduce" => $r, out => "distinct_$fieldname");
-  my $result = $self->dbh->run_command($cmd);
+  my $itemscoll = $self->listid . '_items';
+  my $cmd = Tie::IxHash->new("mapreduce" => $itemscoll, "map" => $m, "reduce" => $r, out => "distinct_$fieldname");
+  #my $result = $self->dbh->run_command($cmd);
+  my $result = $self->run($cmd);
   my @values = map $_->{_id}, 
-    $self->dbh()->get_collection("distinct_$fieldname")->query->all;
+    $self->collection("distinct_$fieldname")->query->all;
   return @values;
 }
 
@@ -257,7 +270,7 @@ method fieldvalues ( Str :$fieldname ) {
 ### Operations on whole lists
 ########################################################################
 
-# Get a summary of all items
+# Get a summary of all_items
 #
 method list_summary(
   Str :$searchq?,
@@ -719,5 +732,5 @@ method logging( Str :$message, Str :$itemid ) {
 
 
 no Moose;
-__PACKAGE__->meta->make_immutable;
+#__PACKAGE__->meta->make_immutable;
 1;

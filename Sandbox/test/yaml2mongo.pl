@@ -40,7 +40,7 @@ our $conn = MongoDB::Connection->new;
 our $db   = $conn->get_database("ListOfThings");
 
 # Store the config
-our $config = $db->get_collection("UnixProjects.config");
+our $config = $db->get_collection("UnixProjects_config");
 $config->drop;
 $config->insert( $data->{config} );
 
@@ -66,7 +66,7 @@ for my $project ( keys %$log ) {
 }
 
 # Save all projects to mongo
-our $projects = $db->get_collection("UnixProjects.items");
+our $projects = $db->get_collection("UnixProjects_items");
 $projects->drop;
 my $proj = $data->{data};
 while ( my ( $item, $value ) = each %$proj ) {
